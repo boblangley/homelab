@@ -1,0 +1,16 @@
+---
+# Compose project `arcane`: the Arcane manager on docker-infra. Ansible manages it, so Arcane never manages itself.
+# Arcane manages only the sandbox projects in its own projects folder.
+arcane_dir: /opt/docker/arcane
+arcane_data: /srv/arcane/data
+arcane_projects: /srv/arcane/projects
+arcane_version: v2.17.3
+
+# Arcane runs as uid 1000 (`core` on docker-infra), which owns its data and projects.
+arcane_uid: 1000
+
+# Caddy reaches Arcane over the homelab overlay. Its address changes when it is recreated, so trust the overlay.
+arcane_trusted_proxies: 10.0.1.0/24
+
+# encryption_key: encrypts what Arcane stores, such as environment credentials. It must not change.
+arcane_secrets_path: homelab/arcane
