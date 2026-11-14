@@ -1,0 +1,29 @@
+# Managed by Ansible (homelab repo, role nats).
+server_name: nats
+listen: 0.0.0.0:4222
+
+# Monitoring stays inside the container; the health check uses it.
+http: 127.0.0.1:8222
+
+tls {
+  cert_file: /etc/nats/tls/tls.crt
+  key_file: /etc/nats/tls/tls.key
+}
+
+jetstream {
+  store_dir: /data
+}
+
+system_account: SYS
+
+accounts {
+  SYS {}
+  APP {
+    jetstream: enabled
+    users: [
+{% for name, key in nats_users | dictsort %}
+      { nkey: {{ key }} }  # {{ name }}
+{% endfor %}
+    ]
+  }
+}

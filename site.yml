@@ -47,6 +47,12 @@
   roles:
     - wyrd
 
+- name: NATS
+  hosts: nats:&managed
+  become: true
+  roles:
+    - nats
+
 # Tagged so the runner can skip itself; apply it from a workstation.
 - name: Actions runner
   hosts: runners:&managed

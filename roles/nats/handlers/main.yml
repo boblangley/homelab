@@ -1,0 +1,5 @@
+---
+# nats-server rereads its config file and TLS certificate on SIGHUP, without dropping clients.
+- name: Reload NATS
+  ansible.builtin.command: docker kill --signal HUP nats
+  changed_when: true
