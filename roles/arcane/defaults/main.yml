@@ -4,7 +4,6 @@
 arcane_dir: /opt/docker/arcane
 arcane_data: /srv/arcane/data
 arcane_projects: /srv/arcane/projects
-arcane_version: v2.17.3
 
 # Arcane runs as uid 1000 (`core` on docker-infra), which owns its data and projects.
 arcane_uid: 1000
