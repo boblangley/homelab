@@ -1,0 +1,14 @@
+---
+# Compose project `identity`: Pocket ID, the OIDC provider behind OpenBao, Wyrwood, Xolotl and Arcane sign-in.
+#
+# Its encryption key is written by Ansible from OpenBao, rather than fetched at run time: sign-in must work from a
+# cold start. The key encrypts Pocket ID's signing keys in its database; with a different key, nobody can sign in.
+identity_dir: /opt/docker/identity
+identity_data: /srv/identity
+identity_pocketid_version: v2.19.2
+
+# Pocket ID runs as uid 1000 (`core` on docker-infra), which owns its data.
+identity_uid: 1000
+
+# encryption_key: 32 base64 characters.
+identity_secrets_path: homelab/identity

@@ -1,0 +1,54 @@
+---
+- name: Read the encryption key from OpenBao
+  ansible.builtin.set_fact:
+    identity_secrets: "{{ lookup('community.hashi_vault.vault_kv2_get', identity_secrets_path, engine_mount_point='kv').secret }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Check that Pocket ID's data is in place
+  ansible.builtin.stat:
+    path: "{{ identity_data }}/pocketid/pocket-id.db"
+  register: identity_db
+
+# A new, empty Pocket ID would start without its users, passkeys and signing keys.
+- name: Require Pocket ID's database
+  ansible.builtin.assert:
+    that: identity_db.stat.exists
+    fail_msg: "No database at {{ identity_data }}/pocketid. Restore it before running this role."
+    quiet: true
+
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ identity_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ identity_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Owned by the user Pocket ID runs as. Never shown in a diff.
+- name: Write the encryption key
+  ansible.builtin.copy:
+    content: "{{ identity_secrets.encryption_key }}\n"
+    dest: "{{ identity_dir }}/encryption.key"
+    owner: "{{ identity_uid }}"
+    group: "{{ identity_uid }}"
+    mode: "0400"
+  register: identity_key
+  no_log: true
+  diff: false
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ identity_dir }}"
+    state: present
+    # Recreate when the key changes; compose only notices changes to compose.yml.
+    recreate: "{{ 'always' if identity_key is changed else 'auto' }}"
