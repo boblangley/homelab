@@ -1,0 +1,26 @@
+<!-- Managed by Ansible (homelab repo, role clickhouse). Passwords are SHA-256 hashes of values in OpenBao. -->
+<clickhouse>
+    <users>
+        <default remove="remove"/>
+{% for user in clickhouse_users %}
+        <{{ user.name }}>
+            <password_sha256_hex>{{ clickhouse_passwords[user.name] | hash('sha256') }}</password_sha256_hex>
+            <networks><ip>::/0</ip></networks>
+            <profile>{{ user.profile | default('default') }}</profile>
+            <quota>default</quota>
+{% if user.access_management | default(false) %}
+            <access_management>1</access_management>
+            <named_collection_control>1</named_collection_control>
+            <show_named_collections>1</show_named_collections>
+            <show_named_collections_secrets>1</show_named_collections_secrets>
+{% elif user.grants | default([]) %}
+            <grants>
+{% for grant in user.grants %}
+                <query>{{ grant }}</query>
+{% endfor %}
+            </grants>
+{% endif %}
+        </{{ user.name }}>
+{% endfor %}
+    </users>
+</clickhouse>

@@ -15,3 +15,18 @@ nats_users:
   trowel: UC4YVZMN4A6PMHIRCDAXURBY6GBSAULJ4DY2RBCVIGX242QKIDAVGUNE
   workspace: UBF3SZ4RN2C7T3XQY5A7ZRX24CS4HX3W3NDS2TDOUQOM7FVF27UT7ISR
   xolotl: UC7TVD54RBDAMNEFIE676CJFKP2CNSM7XHQAQJLN52OSIZPSYMHQ6DEY
+
+# ClickHouse users (role clickhouse). Each password is in OpenBao at homelab/clickhouse/<user>, field password.
+# admin manages schemas, and the Xolotl tables fed from NATS; otel is the OpenTelemetry gateway's writer; reader is
+# for dashboards and agents.
+clickhouse_users:
+  - name: admin
+    access_management: true
+  - name: otel
+    grants:
+      - GRANT ALL ON otel.*
+  - name: reader
+    profile: readonly
+    grants:
+      - GRANT SELECT ON otel.*
+      - GRANT SELECT ON xolotl.*

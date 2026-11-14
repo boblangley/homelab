@@ -1,0 +1,37 @@
+# Managed by Ansible (homelab repo, role clickhouse).
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:{{ clickhouse_version }}
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      # The entrypoint starts as root, owns the data for this uid, and drops to it.
+      CLICKHOUSE_UID: "{{ clickhouse_uid }}"
+      CLICKHOUSE_GID: "{{ clickhouse_uid }}"
+      # Users come from users.d; don't let the entrypoint make a default user.
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ./config.d:/etc/clickhouse-server/config.d:ro
+      - ./users.d:/etc/clickhouse-server/users.d:ro
+      - ./tls:/etc/clickhouse-server/tls:ro
+      # The host bundle, which includes the homelab root.
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      - {{ clickhouse_data }}:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "--no-check-certificate", "https://127.0.0.1:8443/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      homelab:
+        aliases:
+          - {{ clickhouse_name }}
+
+networks:
+  homelab:
+    external: true

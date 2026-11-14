@@ -1,0 +1,38 @@
+<!-- Managed by Ansible (homelab repo, role clickhouse). -->
+<clickhouse>
+    <listen_host>0.0.0.0</listen_host>
+
+    <!-- TLS only: native on 9440, HTTPS on 8443. -->
+    <http_port remove="1"/>
+    <tcp_port remove="1"/>
+    <mysql_port remove="1"/>
+    <postgresql_port remove="1"/>
+    <interserver_http_port remove="1"/>
+    <https_port>8443</https_port>
+    <tcp_port_secure>9440</tcp_port_secure>
+
+    <openSSL>
+        <server>
+            <certificateFile>/etc/clickhouse-server/tls/tls.crt</certificateFile>
+            <privateKeyFile>/etc/clickhouse-server/tls/tls.key</privateKeyFile>
+            <verificationMode>none</verificationMode>
+            <disableProtocols>sslv2,sslv3,tlsv1,tlsv1_1</disableProtocols>
+            <preferServerCiphers>true</preferServerCiphers>
+        </server>
+        <client>
+            <!-- Outgoing TLS (NATS) trusts the system store, which has the homelab root. -->
+            <loadDefaultCAFile>true</loadDefaultCAFile>
+            <verificationMode>strict</verificationMode>
+        </client>
+    </openSSL>
+
+    <max_server_memory_usage_to_ram_ratio>{{ clickhouse_memory_ratio }}</max_server_memory_usage_to_ram_ratio>
+
+    <!-- Logs go to the container's output. -->
+    <logger>
+        <level>information</level>
+        <log remove="1"/>
+        <errorlog remove="1"/>
+        <console>1</console>
+    </logger>
+</clickhouse>
