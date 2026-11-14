@@ -1,6 +1,5 @@
 ---
-# Same version as the controller and the other agents.
-wyrwood_version: 0.7.0
+# wyrwood_version comes from group_vars, shared with the controller.
 
 wyrwood_controller: ssh://wyrwood.internal:2222
 # The controller's SSH host key, pinned at login.

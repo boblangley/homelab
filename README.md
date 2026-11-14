@@ -12,6 +12,12 @@ Ansible for my homelab. This repo describes how each managed host is configured 
 
 Neither side changes the other's area.
 
+## What may be published
+
+This repo is public. Names may appear in it: hosts, accounts, OpenBao paths, Transit keys, policies. Values never
+do: secrets, tokens, private keys, and identifiers particular to an installation, such as AppRole role IDs and OIDC
+client IDs. Those live in OpenBao, and roles read them at run time.
+
 ## Layout
 
 - `inventory/hosts.yml`: managed hosts.
