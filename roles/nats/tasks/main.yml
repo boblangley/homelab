@@ -8,6 +8,7 @@
     mode: "{{ item.mode }}"
   loop:
     - { path: "{{ nats_dir }}", owner: root, mode: "0755" }
+    - { path: "{{ nats_dir }}/config", owner: root, mode: "0755" }
     - { path: "{{ nats_dir }}/tls", owner: root, mode: "0755" }
     - { path: "{{ nats_data }}", owner: "{{ nats_uid }}", mode: "0750" }
   register: nats_dirs
@@ -23,66 +24,31 @@
 - name: Write the server config
   ansible.builtin.template:
     src: nats.conf.j2
-    dest: "{{ nats_dir }}/nats.conf"
+    dest: "{{ nats_dir }}/config/nats.conf"
     owner: root
     group: root
     mode: "0644"
   notify: Reload NATS
 
-# Renew when the certificate is missing, names another host, or expires within nats_cert_renew_days.
-# Two calls: given both options, openssl stops after -checkend and never checks the host.
-- name: Check the certificate
-  ansible.builtin.shell: >-
-    openssl x509 -noout -in {{ nats_dir }}/tls/tls.crt -checkend {{ nats_cert_renew_days * 86400 }}
-    && openssl x509 -noout -in {{ nats_dir }}/tls/tls.crt -checkhost {{ nats_name }}
-  register: nats_cert_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
+- name: Remove the config from its old place
+  ansible.builtin.file:
+    path: "{{ nats_dir }}/nats.conf"
+    state: absent
 
-- name: Decide whether to renew the certificate
-  ansible.builtin.set_fact:
-    nats_cert_renew: "{{ nats_cert_check.rc != 0 or 'does match' not in nats_cert_check.stdout }}"
+- name: Keep the TLS certificate current
+  ansible.builtin.include_role:
+    name: service_cert
+  vars:
+    service_cert_dir: "{{ nats_dir }}/tls"
+    service_cert_name: "{{ nats_name }}"
+    service_cert_owner: "{{ nats_uid }}"
 
-- name: Issue a certificate from OpenBao
-  community.hashi_vault.vault_pki_generate_certificate:
-    url: "{{ ansible_hashi_vault_url }}"
-    auth_method: "{{ ansible_hashi_vault_auth_method }}"
-    namespace: "{{ ansible_hashi_vault_namespace }}"
-    ca_cert: "{{ ansible_hashi_vault_ca_cert }}"
-    engine_mount_point: "{{ nats_pki_mount }}"
-    role_name: "{{ nats_pki_role }}"
-    common_name: "{{ nats_name }}"
-    ttl: "{{ nats_cert_ttl }}"
-  register: nats_issued
-  delegate_to: localhost
-  become: false
-  # Check mode doesn't issue: a preview shows the renewal as a change.
-  when: nats_cert_renew
-  no_log: true
-
-# Key first: the certificate must never be newer than the key beside it.
-- name: Write the private key
-  ansible.builtin.copy:
-    content: "{{ nats_issued.data.data.private_key }}\n"
-    dest: "{{ nats_dir }}/tls/tls.key"
-    owner: "{{ nats_uid }}"
-    group: "{{ nats_uid }}"
-    mode: "0400"
-  when: nats_issued is not skipped and not ansible_check_mode
-  no_log: true
-  diff: false
-
-- name: Write the certificate and its chain
-  ansible.builtin.copy:
-    content: "{{ ([nats_issued.data.data.certificate] + nats_issued.data.data.ca_chain) | join('\n') }}\n"
-    dest: "{{ nats_dir }}/tls/tls.crt"
-    owner: root
-    group: root
-    mode: "0644"
-  when: nats_issued is not skipped and not ansible_check_mode
+- name: Reload NATS for a new certificate
+  ansible.builtin.debug:
+    msg: New certificate for {{ nats_name }}
+  changed_when: true
+  when: service_cert_renewed
   notify: Reload NATS
-  diff: false
 
 - name: Start the project
   community.docker.docker_compose_v2:

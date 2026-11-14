@@ -2,9 +2,7 @@
 # Compose project `nats`: a single NATS server with JetStream. Only containers reach it, on the homelab overlay as
 # nats.internal:4222; the host publishes no ports.
 #
-# TLS: a 30-day certificate from OpenBao (namespace wyrwood, mount pki_services, role homelab-services), issued by
-# this role. It is renewed on any run within nats_cert_renew_days of expiry, so the playbook must run at least that
-# often. ACME can't work here: OpenBao can't resolve or reach an overlay-only name.
+# TLS: a certificate from OpenBao, kept current by role service_cert.
 #
 # Users are nkeys. The server needs only their public keys (nats_users); each seed is in OpenBao at
 # homelab/nats/<user> for the client that uses it.
@@ -16,10 +14,6 @@ nats_version: 2.15.3-alpine
 nats_uid: 1000
 
 nats_name: nats.internal
-nats_pki_mount: pki_services
-nats_pki_role: homelab-services
-nats_cert_ttl: 720h
-nats_cert_renew_days: 10
 
 # All users share account APP, with JetStream. user name: public nkey.
 nats_users: {}
