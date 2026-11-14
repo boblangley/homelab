@@ -1,0 +1,54 @@
+---
+- name: Read this host's Arcane agent token from OpenBao
+  ansible.builtin.set_fact:
+    docker_agent_token: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', docker_agent_token_path, engine_mount_point='kv').secret.agent_token }}
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ docker_agent_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create the data directory
+  ansible.builtin.file:
+    path: "{{ docker_agent_arcane_data | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create Arcane's data directory
+  ansible.builtin.file:
+    path: "{{ docker_agent_arcane_data }}"
+    state: directory
+    owner: "{{ docker_agent_arcane_uid }}"
+    group: "{{ docker_agent_arcane_uid }}"
+    mode: "0755"
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ docker_agent_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Write the agent token
+  ansible.builtin.copy:
+    content: "AGENT_TOKEN={{ docker_agent_token }}\n"
+    dest: "{{ docker_agent_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_agent_dir }}"
+    state: present

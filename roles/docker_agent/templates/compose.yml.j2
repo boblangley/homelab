@@ -1,0 +1,40 @@
+# Managed by Ansible (homelab repo, role docker_agent). Arcane never manages this project.
+services:
+  arcane-agent:
+    image: ghcr.io/getarcaneapp/agent:latest
+    pull_policy: always
+    container_name: arcane-agent
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      EDGE_AGENT: "true"
+      MANAGER_API_URL: "http://arcane:3552"
+    volumes:
+      - {{ docker_agent_arcane_data }}:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      homelab:
+
+  # Read-only Docker API for the ingress manager on docker-infra (Caddy labels, DNS overrides).
+  socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
+    container_name: socket-proxy-{{ inventory_hostname_short }}
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      EVENTS: 1
+      INFO: 1
+      SERVICES: 1
+      CONFIGS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      ingress-control:
+
+networks:
+  homelab:
+    external: true
+  ingress-control:
+    external: true

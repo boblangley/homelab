@@ -1,0 +1,11 @@
+---
+# Compose project `docker-agent`: the Arcane agent, and a read-only Docker API for the ingress manager on docker-infra.
+# Arcane never manages this project; it can't safely manage the agent it runs on.
+docker_agent_dir: /opt/docker/docker-agent
+
+# Arcane's data, including the sandbox projects it manages, owned by the agent's user.
+docker_agent_arcane_data: /srv/docker-agent/arcane
+docker_agent_arcane_uid: 65532
+
+# Read from OpenBao: field agent_token, from the environment created for this host in Arcane.
+docker_agent_token_path: "homelab/hosts/{{ inventory_hostname }}/arcane"
