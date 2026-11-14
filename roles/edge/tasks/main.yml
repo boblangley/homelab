@@ -82,9 +82,33 @@
   no_log: true
   diff: false
 
+# Owned by the user cloudflared runs as. Never shown in a diff.
+- name: Write the tunnel tokens
+  ansible.builtin.copy:
+    content: "{{ edge_secrets['cloudflared_' ~ item ~ '_token'] }}"
+    dest: "{{ edge_dir }}/cloudflared-{{ item }}.token"
+    owner: "65532"
+    group: "65532"
+    mode: "0400"
+  loop: "{{ edge_tunnels }}"
+  register: edge_tunnel_tokens
+  no_log: true
+  diff: false
+
 - name: Start the project
   community.docker.docker_compose_v2:
     project_src: "{{ edge_dir }}"
     state: present
     # Recreate when the Corefile or an env file changes; compose only notices changes to compose.yml.
     recreate: "{{ 'always' if (edge_corefile is changed or edge_env is changed) else 'auto' }}"
+
+# A new token recreates only the tunnels, not the rest of the edge. A restart isn't enough: the container keeps the
+# token file it mounted, and Ansible replaces the file rather than rewriting it.
+- name: Recreate the tunnels for a new token
+  community.docker.docker_compose_v2:
+    project_src: "{{ edge_dir }}"
+    services: "{{ edge_tunnels | map('regex_replace', '^', 'cloudflared-') | list }}"
+    state: present
+    recreate: always
+  # A preview has only pretended to add a new tunnel to the compose file.
+  when: edge_tunnel_tokens is changed and not ansible_check_mode
