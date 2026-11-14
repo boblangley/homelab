@@ -1,0 +1,15 @@
+---
+# A TLS server certificate for a service on the homelab overlay, issued from OpenBao (namespace wyrwood, mount
+# pki_services, role homelab-services). ACME can't work for these names: OpenBao can't resolve or reach them.
+#
+# Use with include_role, setting:
+#   service_cert_dir:   directory for tls.crt (certificate and chain, 0644) and tls.key (0400); must exist
+#   service_cert_name:  the DNS name to certify
+#   service_cert_owner: uid that owns tls.key, the uid the service runs as
+# Afterwards, service_cert_renewed says whether new files were written; reload the service if so.
+#
+# Renewal happens on any run within service_cert_renew_days of expiry, so the playbook must run at least that often.
+service_cert_pki_mount: pki_services
+service_cert_pki_role: homelab-services
+service_cert_ttl: 720h
+service_cert_renew_days: 10

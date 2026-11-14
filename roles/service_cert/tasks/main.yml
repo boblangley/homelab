@@ -1,0 +1,54 @@
+---
+# Renew when the certificate is missing, names another host, or expires within service_cert_renew_days.
+# Two calls: given both options, openssl stops after -checkend and never checks the host.
+- name: Check the certificate for {{ service_cert_name }}
+  ansible.builtin.shell: >-
+    openssl x509 -noout -in {{ service_cert_dir }}/tls.crt -checkend {{ service_cert_renew_days * 86400 }}
+    && openssl x509 -noout -in {{ service_cert_dir }}/tls.crt -checkhost {{ service_cert_name }}
+  register: service_cert_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Issue a certificate for {{ service_cert_name }} from OpenBao
+  community.hashi_vault.vault_pki_generate_certificate:
+    url: "{{ ansible_hashi_vault_url }}"
+    auth_method: "{{ ansible_hashi_vault_auth_method }}"
+    namespace: "{{ ansible_hashi_vault_namespace }}"
+    ca_cert: "{{ ansible_hashi_vault_ca_cert }}"
+    engine_mount_point: "{{ service_cert_pki_mount }}"
+    role_name: "{{ service_cert_pki_role }}"
+    common_name: "{{ service_cert_name }}"
+    ttl: "{{ service_cert_ttl }}"
+  register: service_cert_issued
+  delegate_to: localhost
+  become: false
+  # Check mode doesn't issue: a preview shows the renewal as a change.
+  when: service_cert_check.rc != 0 or 'does match' not in service_cert_check.stdout
+  no_log: true
+
+- name: Note whether new files will be written
+  ansible.builtin.set_fact:
+    service_cert_renewed: "{{ service_cert_issued is not skipped and not ansible_check_mode }}"
+
+# Key first: the certificate must never be newer than the key beside it.
+- name: Write the private key for {{ service_cert_name }}
+  ansible.builtin.copy:
+    content: "{{ service_cert_issued.data.data.private_key }}\n"
+    dest: "{{ service_cert_dir }}/tls.key"
+    owner: "{{ service_cert_owner }}"
+    group: "{{ service_cert_owner }}"
+    mode: "0400"
+  when: service_cert_renewed
+  no_log: true
+  diff: false
+
+- name: Write the certificate and chain for {{ service_cert_name }}
+  ansible.builtin.copy:
+    content: "{{ ([service_cert_issued.data.data.certificate] + service_cert_issued.data.data.ca_chain) | join('\n') }}\n"
+    dest: "{{ service_cert_dir }}/tls.crt"
+    owner: root
+    group: root
+    mode: "0644"
+  when: service_cert_renewed
+  diff: false

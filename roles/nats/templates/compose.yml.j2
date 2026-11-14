@@ -5,9 +5,10 @@ services:
     container_name: nats
     restart: unless-stopped
     user: "{{ nats_uid }}:{{ nats_uid }}"
-    command: ["--config", "/etc/nats/nats.conf"]
+    command: ["--config", "/etc/nats/config/nats.conf"]
     volumes:
-      - ./nats.conf:/etc/nats/nats.conf:ro
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/nats/config:ro
       - ./tls:/etc/nats/tls:ro
       - {{ nats_data }}:/data
     healthcheck:
