@@ -1,0 +1,50 @@
+# Managed by Ansible (homelab repo, role wyrd).
+services:
+  wyrwood:
+    image: ghcr.io/wyrd-company/wyrwood:{{ wyrwood_version }}
+    container_name: wyrwood
+    restart: unless-stopped
+    environment:
+      # Go adds these to the image's system roots: Pocket ID (OIDC) uses a homelab-CA certificate.
+      SSL_CERT_DIR: /etc/wyrwood/ca
+    ports:
+      # Agents log in over SSH. LAN only, not forwarded from the WAN.
+      - target: 2222
+        published: 2222
+        host_ip: {{ ansible_facts.default_ipv4.address }}
+        protocol: tcp
+    labels:
+      caddy: wyrwood.internal
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 8080{{ '}}' }}"
+      caddy.import: openbao_tls
+    volumes:
+      - {{ wyrd_data }}/wyrwood/state:/var/lib/wyrwood
+      - ./wyrwood/controller.yml:/etc/wyrwood/controller.yml:ro
+      - /usr/local/share/ca-certificates/homelab-root.crt:/etc/wyrwood/ca/homelab-root.crt:ro
+      - {{ wyrd_data }}/wyrwood/secret-id:/run/secrets/openbao-secret-id:ro
+      - {{ wyrd_data }}/wyrwood/oidc-client-secret:/run/secrets/oidc-client-secret:ro
+    networks:
+      homelab:
+
+  xolotl:
+    image: ghcr.io/wyrd-company/xolotl:{{ wyrd_xolotl_version }}
+    container_name: xolotl
+    restart: unless-stopped
+    labels:
+      caddy: xolotl.internal
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 8317{{ '}}' }}"
+      caddy.import: openbao_tls
+    volumes:
+      - ./xolotl/config.toml:/etc/xolotl/config.toml:ro
+      - {{ wyrd_data }}/xolotl/data:/data
+      - {{ wyrd_data }}/xolotl/role-id:/run/secrets/xolotl_role_id:ro
+      - {{ wyrd_data }}/xolotl/secret-id:/run/secrets/xolotl_secret_id:ro
+      - /usr/local/share/ca-certificates/homelab-root.crt:/etc/xolotl/homelab-root.crt:ro
+      # rustls uses the system store for Pocket ID (OIDC); the host bundle includes the homelab root.
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    networks:
+      homelab:
+
+networks:
+  homelab:
+    external: true

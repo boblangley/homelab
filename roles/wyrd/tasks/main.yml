@@ -1,0 +1,56 @@
+---
+- name: Read the installation identifiers from OpenBao
+  ansible.builtin.set_fact:
+    wyrd_ids: "{{ lookup('community.hashi_vault.vault_kv2_get', wyrd_ids_path, engine_mount_point='kv').secret }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Check the secret files
+  ansible.builtin.stat:
+    path: "{{ wyrd_data }}/{{ item }}"
+  loop: "{{ wyrd_secret_files }}"
+  register: wyrd_secrets
+
+- name: Require the secret files
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: "Missing {{ item.item }} under {{ wyrd_data }}. These are placed by hand; see the role's defaults."
+    quiet: true
+  loop: "{{ wyrd_secrets.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ wyrd_dir }}"
+    - "{{ wyrd_dir }}/wyrwood"
+    - "{{ wyrd_dir }}/xolotl"
+
+- name: Write the compose file and configurations
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ wyrd_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: compose.yml.j2, dest: compose.yml }
+    - { src: controller.yml.j2, dest: wyrwood/controller.yml }
+    - { src: config.toml.j2, dest: xolotl/config.toml }
+  loop_control:
+    label: "{{ item.dest }}"
+  register: wyrd_files
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ wyrd_dir }}"
+    state: present
+    # Recreate when a mounted configuration changes; compose only notices changes to compose.yml.
+    recreate: "{{ 'always' if wyrd_files is changed else 'auto' }}"

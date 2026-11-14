@@ -1,0 +1,17 @@
+---
+# Compose project `wyrd`: the Wyrwood controller and Xolotl.
+wyrd_dir: /opt/docker/wyrd
+wyrd_data: /srv/wyrd
+
+# The controller runs the same version as the agents (wyrwood_version, group_vars).
+wyrd_xolotl_version: 0.6.1
+
+# Installation identifiers, read from OpenBao: wyrwood_role_id, wyrwood_client_id, xolotl_client_id.
+wyrd_ids_path: homelab/wyrd
+
+# Secret files, held on the host only, readable by the containers' user (65532). Not created by this role.
+wyrd_secret_files:
+  - wyrwood/secret-id
+  - wyrwood/oidc-client-secret
+  - xolotl/role-id
+  - xolotl/secret-id

@@ -23,6 +23,12 @@
   roles:
     - wyrwood_agent
 
+- name: Wyrwood controller and Xolotl
+  hosts: wyrd:&managed
+  become: true
+  roles:
+    - wyrd
+
 # Tagged so the runner can skip itself; apply it from a workstation.
 - name: Actions runner
   hosts: runners:&managed

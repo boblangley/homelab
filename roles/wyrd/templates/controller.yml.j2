@@ -1,0 +1,26 @@
+# Managed by Ansible (homelab repo, role wyrd).
+http:
+  # Inside the container; Caddy (wyrwood.internal) fronts it on the homelab overlay.
+  listen: 0.0.0.0:8080
+ssh:
+  listen: 0.0.0.0:2222
+openbao:
+  address: https://openbao.internal:8200
+  ca-file: /etc/wyrwood/ca/homelab-root.crt
+  namespace: wyrwood
+  approle:
+    role-id: {{ wyrd_ids.wyrwood_role_id }}
+    secret-id-file: /run/secrets/openbao-secret-id
+oidc:
+  provider-name: Pocket ID
+  issuer: https://pocketid.internal
+  client-id: {{ wyrd_ids.wyrwood_client_id }}
+  client-secret-file: /run/secrets/oidc-client-secret
+  redirect-url: https://wyrwood.internal/auth/callback
+  groups-claim: groups
+  allowed-groups:
+    - wyrwood_operators
+update-checks:
+  enabled: true
+  interval: 24h
+  timeout: 10s

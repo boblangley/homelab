@@ -7,3 +7,6 @@ ansible_hashi_vault_url: https://openbao.internal:8200
 ansible_hashi_vault_auth_method: token
 ansible_hashi_vault_namespace: wyrwood
 ansible_hashi_vault_ca_cert: /etc/ssl/certs/ca-certificates.crt
+
+# Wyrwood: the controller (role wyrd) and every agent (role wyrwood_agent) run the same version.
+wyrwood_version: 0.7.0
