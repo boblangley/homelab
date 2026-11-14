@@ -4,4 +4,16 @@
   become: true
   roles:
     - base
+
+- name: Docker
+  hosts: docker:&managed
+  become: true
+  roles:
+    - docker
+
+# After Docker, so people get the docker group on the same run.
+- name: Accounts
+  hosts: managed
+  become: true
+  roles:
     - accounts

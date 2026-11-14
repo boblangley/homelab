@@ -1,0 +1,11 @@
+---
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# docker-infra is the only Swarm manager. Hosts here join as workers; the join token is fetched from the manager
+# during the run and never stored.
+docker_swarm_manager: docker-infra.internal

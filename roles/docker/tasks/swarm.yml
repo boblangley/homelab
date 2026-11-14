@@ -1,0 +1,32 @@
+---
+- name: Read this host's Swarm state
+  ansible.builtin.command: docker info --format {% raw %}'{{ .Swarm.LocalNodeState }}'{% endraw %}
+  register: docker_swarm_state
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Join the Swarm as a worker
+  when: docker_swarm_state.stdout | default('') == 'inactive'
+  block:
+    - name: Read the manager's address
+      ansible.builtin.command: docker info --format {% raw %}'{{ .Swarm.NodeAddr }}'{% endraw %}
+      delegate_to: "{{ docker_swarm_manager }}"
+      register: docker_swarm_manager_info
+      changed_when: false
+      check_mode: false
+
+    - name: Read the worker join token
+      ansible.builtin.command: docker swarm join-token -q worker
+      delegate_to: "{{ docker_swarm_manager }}"
+      register: docker_swarm_token
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Join as a worker
+      ansible.builtin.command: >-
+        docker swarm join --token {{ docker_swarm_token.stdout }}
+        {{ docker_swarm_manager_info.stdout }}:2377
+      changed_when: true
+      no_log: true
