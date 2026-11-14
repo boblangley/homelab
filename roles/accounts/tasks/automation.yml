@@ -1,0 +1,51 @@
+---
+# Accounts that act on hosts for automation, each with one authorized key and passwordless sudo.
+# A new host gets `agent` by hand first; see README.
+
+- name: Create automation account groups
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.uid }}"
+  loop: "{{ accounts_automation }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create automation accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    group: "{{ item.name }}"
+    shell: /bin/bash
+    create_home: true
+    password: "!"
+    update_password: on_create
+  loop: "{{ accounts_automation }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Read the accounts on the host
+  ansible.builtin.getent:
+    database: passwd
+
+# A preview can't add a key for an account it has only pretended to create.
+- name: Authorize each automation account's key
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ lookup('ansible.builtin.file', item.key) }}"
+    exclusive: true
+  loop: "{{ accounts_automation }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name in ansible_facts.getent_passwd or not ansible_check_mode
+
+- name: Give automation accounts passwordless sudo
+  ansible.builtin.copy:
+    content: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL\n"
+    dest: "/etc/sudoers.d/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+  loop: "{{ accounts_automation }}"
+  loop_control:
+    label: "{{ item.name }}"
