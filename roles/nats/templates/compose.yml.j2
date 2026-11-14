@@ -1,0 +1,26 @@
+# Managed by Ansible (homelab repo, role nats).
+services:
+  nats:
+    image: nats:{{ nats_version }}
+    container_name: nats
+    restart: unless-stopped
+    user: "{{ nats_uid }}:{{ nats_uid }}"
+    command: ["--config", "/etc/nats/nats.conf"]
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - ./tls:/etc/nats/tls:ro
+      - {{ nats_data }}:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      homelab:
+        aliases:
+          - {{ nats_name }}
+
+networks:
+  homelab:
+    external: true
