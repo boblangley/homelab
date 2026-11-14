@@ -30,10 +30,11 @@
   notify: Reload NATS
 
 # Renew when the certificate is missing, names another host, or expires within nats_cert_renew_days.
+# Two calls: given both options, openssl stops after -checkend and never checks the host.
 - name: Check the certificate
-  ansible.builtin.command: >-
-    openssl x509 -noout -in {{ nats_dir }}/tls/tls.crt
-    -checkend {{ nats_cert_renew_days * 86400 }} -checkhost {{ nats_name }}
+  ansible.builtin.shell: >-
+    openssl x509 -noout -in {{ nats_dir }}/tls/tls.crt -checkend {{ nats_cert_renew_days * 86400 }}
+    && openssl x509 -noout -in {{ nats_dir }}/tls/tls.crt -checkhost {{ nats_name }}
   register: nats_cert_check
   changed_when: false
   failed_when: false
