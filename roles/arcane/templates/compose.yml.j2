@@ -1,0 +1,33 @@
+# Managed by Ansible (homelab repo, role arcane).
+services:
+  arcane:
+    image: ghcr.io/getarcaneapp/manager:{{ arcane_version }}
+    container_name: arcane
+    restart: unless-stopped
+    env_file: arcane.env
+    environment:
+      APP_URL: https://arcane.internal
+      TLS_ENABLED: "false"
+      PUID: "{{ arcane_uid }}"
+      PGID: "{{ arcane_uid }}"
+      PROJECTS_DIRECTORY: {{ arcane_projects }}
+      # Go adds these to the system roots: OIDC discovery against Pocket ID uses a homelab-CA certificate.
+      SSL_CERT_DIR: /etc/homelab-ca
+      TRUSTED_PROXIES: {{ arcane_trusted_proxies }}
+    labels:
+      caddy: arcane.internal
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 3552{{ '}}' }}"
+      caddy.reverse_proxy.header_up: "X-Real-IP {remote_host}"
+      caddy.import: openbao_tls
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ arcane_data }}:/app/data
+      - {{ arcane_projects }}:{{ arcane_projects }}
+      - /usr/local/share/ca-certificates/homelab-root.crt:/etc/homelab-ca/homelab-root.crt:ro
+    cgroup: host
+    networks:
+      homelab:
+
+networks:
+  homelab:
+    external: true

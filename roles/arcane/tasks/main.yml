@@ -1,0 +1,62 @@
+---
+- name: Read the encryption key from OpenBao
+  ansible.builtin.set_fact:
+    arcane_secrets: "{{ lookup('community.hashi_vault.vault_kv2_get', arcane_secrets_path, engine_mount_point='kv').secret }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Check that Arcane's data is in place
+  ansible.builtin.stat:
+    path: "{{ arcane_data }}/arcane.db"
+  register: arcane_db
+
+# A new, empty Arcane would start without its environments and settings.
+- name: Require Arcane's database
+  ansible.builtin.assert:
+    that: arcane_db.stat.exists
+    fail_msg: "No database at {{ arcane_data }}. Restore it before running this role."
+    quiet: true
+
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ arcane_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create the projects folder Arcane manages
+  ansible.builtin.file:
+    path: "{{ arcane_projects }}"
+    state: directory
+    owner: "{{ arcane_uid }}"
+    group: "{{ arcane_uid }}"
+    mode: "0755"
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ arcane_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Never shown in a diff.
+- name: Write the encryption key
+  ansible.builtin.copy:
+    content: "ENCRYPTION_KEY={{ arcane_secrets.encryption_key }}\n"
+    dest: "{{ arcane_dir }}/arcane.env"
+    owner: root
+    group: root
+    mode: "0600"
+  register: arcane_env
+  no_log: true
+  diff: false
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ arcane_dir }}"
+    state: present
+    # Recreate when the key changes; compose only notices changes to compose.yml.
+    recreate: "{{ 'always' if arcane_env is changed else 'auto' }}"

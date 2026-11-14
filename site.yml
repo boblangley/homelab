@@ -35,6 +35,12 @@
   roles:
     - identity
 
+- name: Arcane manager
+  hosts: arcane:&managed
+  become: true
+  roles:
+    - arcane
+
 - name: Wyrwood controller and Xolotl
   hosts: wyrd:&managed
   become: true
