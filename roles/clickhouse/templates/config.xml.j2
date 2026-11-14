@@ -20,8 +20,9 @@
             <preferServerCiphers>true</preferServerCiphers>
         </server>
         <client>
-            <!-- Outgoing TLS (NATS) trusts the system store, which has the homelab root. -->
-            <loadDefaultCAFile>true</loadDefaultCAFile>
+            <!-- Outgoing TLS (NATS) trusts the host bundle, which has the homelab root. Named explicitly: ClickHouse's
+                 static build doesn't find the system store by itself. -->
+            <caConfig>/etc/ssl/certs/ca-certificates.crt</caConfig>
             <verificationMode>strict</verificationMode>
         </client>
     </openSSL>
