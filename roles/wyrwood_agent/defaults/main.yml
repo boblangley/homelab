@@ -1,0 +1,7 @@
+---
+# Same version as the controller and the other agents.
+wyrwood_version: 0.7.0
+
+wyrwood_controller: ssh://wyrwood.internal:2222
+# The controller's SSH host key, pinned at login.
+wyrwood_controller_fingerprint: SHA256:EcvbWlOVBUPSsJvj0iZtUtCM+/weaQ8eATbyTo7w9ik

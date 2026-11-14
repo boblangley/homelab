@@ -11,6 +11,7 @@
   roles:
     - docker
     - docker_agent
+    - wyrwood_agent
 
 # After Docker, so people get the docker group on the same run.
 - name: Accounts
