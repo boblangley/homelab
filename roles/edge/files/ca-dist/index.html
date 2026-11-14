@@ -1,0 +1,305 @@
+<!doctype html>
+<!-- Served by the ingress Caddy at http://ca.internal and https://ca.internal from /srv/core/caddy/ca-dist.
+     Source: docker-infra.internal/ca-dist/ in the homelab repo. Runbook: docker-infra.internal/dashy/RUNBOOK.md step 5.
+     No external assets. Without JavaScript all OS sections show one after another; with it they become tabs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trust our home network</title>
+<style>
+  :root { color-scheme: light dark; --accent: #5e81ac; --muted: #888; --box: rgba(127,127,127,.12); --line: rgba(127,127,127,.35); }
+  body { font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 52rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  h1 { margin-bottom: .25rem; }
+  h2 { margin-top: 2.5rem; border-bottom: 2px solid var(--accent); padding-bottom: .25rem; }
+  a { color: var(--accent); }
+  code, pre { font: 14px/1.45 ui-monospace, "Cascadia Code", Menlo, monospace; background: var(--box); border-radius: 4px; }
+  code { padding: .1rem .3rem; }
+  pre { padding: .75rem 1rem; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }  /* wrap long commands; copying keeps them on one line */
+  .download { display: inline-block; background: var(--accent); color: #fff; padding: .6rem 1.2rem; border-radius: 6px; text-decoration: none; font-weight: 600; }
+  .note { background: var(--box); border-left: 4px solid var(--accent); padding: .5rem 1rem; margin: 1rem 0; }
+  .muted { color: var(--muted); }
+  dl.fp dt { font-weight: 600; } dl.fp dd { margin: 0 0 .5rem; font-family: ui-monospace, Menlo, monospace; font-size: 14px; word-break: break-all; }
+
+  /* tabs */
+  .tablist { display: none; flex-wrap: wrap; gap: .25rem; border-bottom: 2px solid var(--accent); margin-top: 2rem; }
+  .js .tablist { display: flex; }
+  .tablist button { font: inherit; padding: .5rem .9rem; border: 1px solid var(--line); border-bottom: none;
+    border-radius: 6px 6px 0 0; background: var(--box); color: inherit; cursor: pointer; }
+  .tablist button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .js .panel > h2 { display: none; }
+  .js .panel[hidden] { display: none; }
+  .panel { padding-top: .5rem; }
+
+  /* QR codes */
+  .qr { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; background: var(--box); border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+  .qr img { width: 150px; height: 150px; display: block; }
+  .qr p { margin: 0; flex: 1 1 14rem; }
+  @media (max-width: 40rem) { .qr { display: none; } }  /* on the phone itself: tap the link instead */
+
+  /* copy buttons */
+  .code { position: relative; margin: .5rem 0 1rem; }
+  .code pre { padding-right: 5rem; }
+  .copy { position: absolute; top: .4rem; right: .4rem; font: 13px system-ui, sans-serif; padding: .2rem .6rem;
+    border: 1px solid var(--line); border-radius: 4px; background: Canvas; color: CanvasText; cursor: pointer; }
+  details { margin: 1rem 0; } summary { cursor: pointer; color: var(--accent); }
+  details[open] summary { margin-bottom: .5rem; }
+  ol li { margin-bottom: .5rem; }
+  .download { padding: .3rem .8rem; margin-left: .25rem; }
+  .copy.done { border-color: #a3be8c; color: #a3be8c; }
+</style>
+</head>
+<body>
+
+<h1>Trust our home network</h1>
+<p>Our home has its own private websites, like <b>home.internal</b> (the family dashboard). Your phone or computer
+will show scary security warnings on them until you install our home's <b>security certificate</b>, a small file
+that tells your device "these sites are ours, they're safe".</p>
+<p>You only do this <b>once per device</b>. It takes about two minutes. Your device must be on the <b>home Wi-Fi</b>.</p>
+
+<div class="note">
+<p>Your browser may say <b>"Not secure"</b> on this page. That is expected. This page is how you fix that.</p>
+</div>
+
+<p><b>Pick your device:</b></p>
+
+<div class="tablist" role="tablist" aria-label="Your device">
+  <button role="tab" id="tab-ios" aria-controls="ios">iPhone / iPad</button>
+  <button role="tab" id="tab-android" aria-controls="android">Android phone</button>
+  <button role="tab" id="tab-windows" aria-controls="windows">Windows PC</button>
+  <button role="tab" id="tab-macos" aria-controls="macos">Mac</button>
+  <button role="tab" id="tab-cachyos" aria-controls="cachyos">CachyOS / Arch</button>
+  <button role="tab" id="tab-debian" aria-controls="debian">Ubuntu / Debian / Pi OS</button>
+</div>
+
+<section class="panel" id="ios" role="tabpanel" aria-labelledby="tab-ios">
+<h2>iPhone / iPad</h2>
+<div class="qr">
+  <img src="/qr/ios.svg" alt="QR code that opens the certificate download">
+  <p>On a computer? <b>Point your iPhone's camera at this code</b> and tap the link that pops up.</p>
+</div>
+<ol>
+  <li><b>Download it.</b> In <b>Safari</b>, tap <a href="/homelab-root.crt">this link</a>.
+      When it asks, tap <b>Allow</b>, then <b>Close</b>.
+      <br><span class="muted">It must be Safari for this step. If the link opened in Chrome, Brave, Opera, Vivaldi or another
+      app, copy it into Safari.</span></li>
+  <li><b>Install it.</b> Open the <b>Settings</b> app. Near the top, tap <b>Profile Downloaded</b>. Tap <b>Install</b>,
+      enter your passcode, then tap <b>Install</b> twice more and <b>Done</b>.
+      <br><span class="muted">Don't see "Profile Downloaded"? Go to General → VPN &amp; Device Management.</span></li>
+  <li><b>Turn it on. Don't skip this!</b> In Settings, go to <b>General → About</b>, scroll all the way down, tap
+      <b>Certificate Trust Settings</b>, switch on <b>Homelab Root CA</b> and tap <b>Continue</b>.</li>
+</ol>
+<p>Done! Now <a href="#check">check it worked</a>. After this, <b>every browser</b> on the iPhone or iPad trusts our
+sites: Safari, Chrome, Brave, Opera, Vivaldi and the rest.</p>
+</section>
+
+<section class="panel" id="android" role="tabpanel" aria-labelledby="tab-android">
+<h2>Android phone</h2>
+<div class="qr">
+  <img src="/qr/android.svg" alt="QR code that downloads the certificate">
+  <p>On a computer? <b>Point your phone's camera at this code</b> and tap the link that pops up.</p>
+</div>
+<ol>
+  <li><b>Download it.</b> Tap <a href="/download/homelab-root.crt">this link</a>. The file saves to your Downloads.
+      <br><span class="muted">If your phone says it can't install it from here, that's normal. Carry on.</span></li>
+  <li><b>Install it.</b> Open the <b>Settings</b> app and search for <b>CA certificate</b>. Tap it, then
+      <b>Install anyway</b>, and unlock your phone if asked.
+      <br><span class="muted">No search? Try Security &amp; privacy → More security settings → Encryption &amp; credentials →
+      Install a certificate → CA certificate. Every phone brand words this a bit differently.</span></li>
+  <li><b>Pick the file</b> called <b>homelab-root.crt</b> from your Downloads.</li>
+</ol>
+<p>Your phone may now show a message like <i>"Network may be monitored"</i>. That is a standard notice for any
+installed certificate; nothing is watching you.</p>
+<p>Chrome, Samsung Internet, Brave, Opera and Vivaldi trust our sites straight away.</p>
+<p>Done! Now <a href="#check">check it worked</a>.</p>
+<details>
+  <summary>Using Firefox on Android?</summary>
+  <p>Open Firefox → Settings → About Firefox, tap the Firefox logo 5 times, go back to Settings → Secret Settings and
+  turn on <b>Use third party CA certificates</b>.</p>
+  <p>Other apps (not browsers) may still not trust our sites. That is an Android limit.</p>
+</details>
+</section>
+
+<section class="panel" id="windows" role="tabpanel" aria-labelledby="tab-windows">
+<h2>Windows PC</h2>
+<p class="muted">You need to be able to approve "Do you want to allow this app to make changes" prompts.</p>
+<ol>
+  <li><b>Download it.</b> Click <a class="download" href="/homelab-root.crt">Download certificate</a></li>
+  <li><b>Open it.</b> Open your Downloads and double-click <b>homelab-root.crt</b>. Click <b>Open</b> if asked, then
+      <b>Install Certificate…</b></li>
+  <li>Choose <b>Local Machine</b> and click <b>Next</b>. Click <b>Yes</b> on the prompt.</li>
+  <li>Choose <b>Place all certificates in the following store</b>, click <b>Browse…</b>, pick
+      <b>Trusted Root Certification Authorities</b>, click <b>OK</b>, then <b>Next</b> and <b>Finish</b>.</li>
+  <li>You should see <b>"The import was successful."</b></li>
+</ol>
+<p>Done! Close your browser completely, open it again, and <a href="#check">check it worked</a>.
+Edge, Chrome, Brave, Opera and Vivaldi use this straight away. Using Firefox or Zen? See <a href="#firefox">this note</a>.</p>
+<details>
+  <summary>For the technically minded: PowerShell</summary>
+  <p>As administrator:</p>
+<pre>Invoke-WebRequest http://ca.internal/homelab-root.crt -OutFile $env:TEMP\homelab-root.crt
+Import-Certificate -FilePath $env:TEMP\homelab-root.crt -CertStoreLocation Cert:\LocalMachine\Root</pre>
+</details>
+</section>
+
+<section class="panel" id="macos" role="tabpanel" aria-labelledby="tab-macos">
+<h2>Mac</h2>
+<ol>
+  <li><b>Download it.</b> Click <a class="download" href="/homelab-root.crt">Download certificate</a></li>
+  <li><b>Open it.</b> Open your Downloads and double-click <b>homelab-root.crt</b>. The <b>Keychain Access</b> app opens
+      (enter your Mac password if asked).</li>
+  <li>In Keychain Access, find <b>Homelab Root CA</b> in the list and double-click it.</li>
+  <li>Click the little arrow next to <b>Trust</b>. Change <b>When using this certificate</b> to <b>Always Trust</b>.</li>
+  <li>Close that window and enter your Mac password to save.</li>
+</ol>
+<p>Done! Quit your browser completely, open it again, and <a href="#check">check it worked</a>.
+Safari, Chrome, Brave, Opera and Vivaldi use this straight away. Using Firefox or Zen? See <a href="#firefox">this note</a>.</p>
+<details>
+  <summary>For the technically minded: Terminal</summary>
+  <p>Installs for all users on the Mac:</p>
+<pre>curl -fsSLo ~/Downloads/homelab-root.crt http://ca.internal/homelab-root.crt
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/Downloads/homelab-root.crt</pre>
+</details>
+</section>
+
+<section class="panel" id="cachyos" role="tabpanel" aria-labelledby="tab-cachyos">
+<h2>CachyOS / Arch Linux</h2>
+<p>Run in a terminal:</p>
+<pre>curl -fsSLo /tmp/homelab-root.crt http://ca.internal/homelab-root.crt
+sudo trust anchor --store /tmp/homelab-root.crt</pre>
+<p>Restart your browser. Firefox, Zen, Chrome/Chromium, Brave, Opera, Vivaldi and command-line tools all use the
+system store. If Zen or Firefox still warns, see <a href="#firefox">this note</a>.</p>
+<details>
+  <summary>Check, verify or remove</summary>
+  <p>Check it is installed:</p>
+<pre>trust list --filter=ca-anchors | grep -A2 "Homelab Root CA"</pre>
+  <p>Verify the file before trusting it (compare with the fingerprint at the <a href="#verify">bottom of the page</a>):</p>
+<pre>openssl x509 -in /tmp/homelab-root.crt -noout -fingerprint -sha256</pre>
+  <p>Remove later:</p>
+<pre>sudo trust anchor --remove /tmp/homelab-root.crt</pre>
+</details>
+</section>
+
+<section class="panel" id="debian" role="tabpanel" aria-labelledby="tab-debian">
+<h2>Ubuntu / Debian / Raspberry Pi OS</h2>
+<p>Run in a terminal (the last command should say "1 added"):</p>
+<pre>sudo curl -fsSLo /usr/local/share/ca-certificates/homelab-root.crt http://ca.internal/homelab-root.crt
+sudo update-ca-certificates</pre>
+<p>That covers command-line tools. Browsers keep their own list:</p>
+<ul>
+  <li><b>Firefox or Zen</b> (the Ubuntu Firefox snap ignores the system store): see <a href="#firefox">this note</a>.</li>
+  <li><b>Chrome, Chromium, Brave, Opera or Vivaldi</b> (they share one list), if they still warn after a restart:</li>
+</ul>
+<pre>sudo apt install libnss3-tools
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Homelab Root CA" -i /usr/local/share/ca-certificates/homelab-root.crt</pre>
+<details>
+  <summary>Verify or remove</summary>
+  <p>Verify the file (compare with the fingerprint at the <a href="#verify">bottom of the page</a>):</p>
+<pre>openssl x509 -in /usr/local/share/ca-certificates/homelab-root.crt -noout -fingerprint -sha256</pre>
+  <p>Remove later:</p>
+<pre>sudo rm /usr/local/share/ca-certificates/homelab-root.crt &amp;&amp; sudo update-ca-certificates --fresh</pre>
+</details>
+</section>
+
+<h2 id="check">Did it work?</h2>
+<p>Open <a href="https://home.internal">https://home.internal</a>. If it opens without a warning, you're all set.</p>
+<p>Still see a warning? Close the browser completely and try again. On a phone, check you did every step,
+especially the last one on iPhone. On a computer with Firefox or Zen, see <a href="#firefox">the note below</a>.</p>
+
+<h2 id="firefox">Using Firefox or Zen on a computer?</h2>
+<p>Firefox and Zen (which is built on Firefox) sometimes keep their own list. If yours still warns after the steps
+above:</p>
+<ol>
+  <li>Open the browser's <b>Settings</b> and search for <b>certificates</b>. Click <b>View Certificates…</b></li>
+  <li>Go to the <b>Authorities</b> tab, click <b>Import…</b> and pick <b>homelab-root.crt</b> from your Downloads.</li>
+  <li>Tick <b>Trust this CA to identify websites</b> and click <b>OK</b>.</li>
+</ol>
+
+<details id="verify">
+  <summary>For the technically minded: verify the certificate</summary>
+  <p>This page is served over plain HTTP on purpose (HTTPS only works once the certificate is installed). Compare the
+  fingerprint before you trust the file.</p>
+  <dl class="fp">
+    <dt>Name</dt><dd>Homelab Root CA (valid 2026-10-10 to 2036-10-07)</dd>
+    <dt>SHA-256</dt><dd>72:CC:18:32:D1:0B:57:B6:CE:1D:81:E7:F9:01:88:73:CA:AF:C9:B0:1C:72:2C:4A:C4:D5:CF:27:D4:E5:6C:CA</dd>
+    <dt>SHA-1 (Windows "Thumbprint")</dt><dd>ED:07:82:DF:B5:85:8B:D6:C2:8B:F8:EF:7B:E1:42:6D:E9:2E:91:53</dd>
+  </dl>
+<pre>openssl x509 -in homelab-root.crt -noout -fingerprint -sha256</pre>
+  <p>Covers <code>*.internal</code>, <code>*.wyrd.team</code> and <code>*.lan</code>; sites get their certificates from the
+  Homelab Intermediate CA, which chains to this root.</p>
+</details>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+
+  // Tabs: pick from the URL hash, else guess from the browser, else Windows.
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  var ids = tabs.map(function (t) { return t.getAttribute('aria-controls'); });
+  function show(id, focus) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('aria-controls') === id;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      if (on && focus) t.focus();
+    });
+  }
+  function guess() {
+    var ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Android/.test(ua)) return 'android';
+    if (/Windows/.test(ua)) return 'windows';
+    if (/Macintosh/.test(ua)) return 'macos';
+    if (/Linux/.test(ua)) return 'debian';
+    return 'ios';
+  }
+  document.querySelectorAll('a[href="#verify"]').forEach(function (a) {
+    a.addEventListener('click', function () { document.getElementById('verify').open = true; });
+  });
+  var start = location.hash.slice(1);
+  show(ids.indexOf(start) >= 0 ? start : guess());
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () {
+      show(t.getAttribute('aria-controls'));
+      history.replaceState(null, '', '#' + t.getAttribute('aria-controls'));
+    });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (d) show(ids[(i + d + ids.length) % ids.length], true);
+    });
+  });
+
+  // Copy buttons. Clicking selects the whole block first, so if copying fails (plain HTTP has no
+  // navigator.clipboard, and some browsers refuse execCommand) the user can still press Ctrl+C / Cmd+C.
+  function selectAll(el) {
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+  function copyText(pre) {
+    selectAll(pre);
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(pre.textContent);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    return ok ? Promise.resolve() : Promise.reject();
+  }
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  document.querySelectorAll('pre').forEach(function (pre) {
+    var wrap = document.createElement('div');
+    wrap.className = 'code';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'copy'; b.textContent = 'Copy';
+    b.addEventListener('click', function () {
+      copyText(pre).then(function () {
+        b.textContent = 'Copied'; b.classList.add('done');
+      }, function () { b.textContent = 'Selected: ' + (mac ? 'Cmd+C' : 'Ctrl+C'); });
+      setTimeout(function () { b.textContent = 'Copy'; b.classList.remove('done'); }, 3000);
+    });
+    wrap.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>

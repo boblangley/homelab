@@ -33,7 +33,10 @@
     - "{{ wyrd_dir }}/wyrwood"
     - "{{ wyrd_dir }}/xolotl"
 
+# Never shown in a diff: the configurations hold installation identifiers, and Actions logs of this public repo
+# are public.
 - name: Write the compose file and configurations
+  diff: false
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ wyrd_dir }}/{{ item.dest }}"

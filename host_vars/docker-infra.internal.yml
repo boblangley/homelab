@@ -9,3 +9,11 @@ accounts_services:
 wyrwood_access_groups:
   - name: homelab-runner
     gid: 1502
+
+# Docker workers whose labels Caddy reads, through each one's socket proxy. Includes hosts not yet managed here.
+edge_socket_proxies:
+  - gtr6
+  - ser6-p
+  - ser6-max
+  - m1-1295
+  - wtr-pro

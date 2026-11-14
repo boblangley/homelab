@@ -1,0 +1,7 @@
+# Answers homelab.internal from Docker's embedded DNS on the homelab overlay: <alias>.homelab.internal reaches a
+# container by its network alias. Tailscale clients reach this through split DNS.
+homelab.internal:53 {
+    forward . 127.0.0.11
+    cache 5
+    errors
+}

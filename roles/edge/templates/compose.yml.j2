@@ -1,0 +1,135 @@
+# Managed by Ansible (homelab repo, role edge).
+services:
+  homelab-ingress-manager:
+    image: ghcr.io/boblangley/homelab-ingress-manager:{{ edge_ingress_version }}
+    container_name: homelab-ingress-manager
+    restart: unless-stopped
+    ports:
+      - target: 80
+        published: 80
+        host_ip: {{ ansible_facts.default_ipv4.address }}
+        protocol: tcp
+      - target: 443
+        published: 443
+        host_ip: {{ ansible_facts.default_ipv4.address }}
+        protocol: tcp
+      - target: 443
+        published: 443
+        host_ip: {{ ansible_facts.default_ipv4.address }}
+        protocol: udp
+    env_file: opnsense.env
+    environment:
+      CADDY_INGRESS_NETWORKS: homelab
+      # The local engine, and each Docker worker's read-only socket proxy on the ingress-control overlay.
+      CADDY_DOCKER_SOCKETS: {{ (['unix:///var/run/docker.sock'] + edge_socket_proxies | map('regex_replace', '^(.*)$', 'tcp://socket-proxy-\\1:2375') | list) | join(',') }}
+      OPNSENSE_URL: {{ edge_opnsense_url }}
+      OPNSENSE_INSECURE_SKIP_VERIFY: "true"
+      INGRESS_HOST_IP: {{ ansible_facts.default_ipv4.address }}
+    labels:
+      caddy.on_demand_tls.ask: http://127.0.0.1:9123
+      # Snippet for *.internal, *.wyrd.team and *.lan sites: certificates from the OpenBao ACME intermediate. Sites
+      # add `caddy.import: openbao_tls`; sites without it use Caddy's default issuers.
+      caddy_0: (openbao_tls)
+      caddy_0.tls.on_demand: ""
+      caddy_0.tls.issuer: acme
+      caddy_0.tls.issuer.dir: https://openbao.internal:8200/v1/pki_int/acme/directory
+      caddy_0.tls.issuer.trusted_roots: /etc/caddy/homelab-root.crt
+      # CA download and install page. Plain HTTP on purpose, so it works before the root is trusted; HTTPS as well.
+      caddy_1: "http://ca.internal, ca.internal"
+      caddy_1.import: openbao_tls
+      caddy_1.root: "* /srv/ca"
+      caddy_1.header_0: "/homelab-root.crt Content-Type application/x-x509-ca-cert"
+      caddy_1.header_1: "/download/* Content-Disposition attachment"
+      caddy_1.file_server: ""
+      caddy_2: http://127.0.0.1:9123
+      caddy_2.respond: 200
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /usr/local/share/ca-certificates/homelab-root.crt:/etc/caddy/homelab-root.crt:ro
+      - ./ca-dist:/srv/ca:ro
+      - {{ edge_data }}/caddy/data:/data
+      - {{ edge_data }}/caddy/config:/config
+    networks:
+      default:
+      homelab:
+      ingress-control:
+      ens19-direct:
+        ipv4_address: {{ edge_ingress_opnsense_ip }}
+
+  coredns:
+    image: coredns/coredns:{{ edge_coredns_version }}
+    container_name: coredns
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    volumes:
+      - ./Corefile:/etc/coredns/Corefile:ro
+    networks:
+      homelab:
+        ipv4_address: {{ edge_coredns_ip }}
+
+  pihole:
+    image: pihole/pihole:{{ edge_pihole_version }}
+    container_name: pihole
+    restart: unless-stopped
+    env_file: pihole.env
+    environment:
+      TZ: America/Los_Angeles
+      FTLCONF_LOCAL_IPV4: {{ edge_pihole_ip }}
+      FTLCONF_dns_upstreams: {{ edge_pihole_upstream }}
+      FTLCONF_dns_listeningMode: ALL
+      DNSMASQ_USER: root
+      WEBTHEME: default-dark
+    volumes:
+      - {{ edge_data }}/pihole/config:/etc/pihole
+      - {{ edge_data }}/pihole/dnsmasq:/etc/dnsmasq.d
+    networks:
+      pihole:
+        ipv4_address: {{ edge_pihole_ip }}
+      homelab:
+    labels:
+      caddy: pihole.internal
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 80{{ '}}' }}"
+      caddy.import: openbao_tls
+    healthcheck:
+      test: ["CMD-SHELL", "dig +short +norecurse +retry=0 @127.0.0.1 pi.hole || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Subnet router for the homelab overlay. Logged in once; its identity is in the state directory.
+  tailscale:
+    image: tailscale/tailscale:{{ edge_tailscale_version }}
+    container_name: tailscale
+    hostname: tailscale-homelab-docker
+    restart: unless-stopped
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_ROUTES: {{ edge_tailscale_routes }}
+    volumes:
+      - {{ edge_data }}/tailscale:/var/lib/tailscale
+    cap_add:
+      - net_admin
+      - net_raw
+    networks:
+      default:
+      homelab:
+
+networks:
+  default:
+    driver: bridge
+  homelab:
+    external: true
+  ingress-control:
+    external: true
+  ens19-direct:
+    external: true
+  # Pi-hole's own address on the LAN.
+  pihole:
+    driver: macvlan
+    driver_opts:
+      parent: {{ edge_lan_parent }}
+    ipam:
+      config:
+        - subnet: {{ edge_lan_subnet }}
+          gateway: {{ edge_lan_gateway }}
+          ip_range: {{ edge_pihole_ip }}/32
