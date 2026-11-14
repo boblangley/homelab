@@ -1,0 +1,22 @@
+# Managed by Ansible (homelab repo, role runner).
+services:
+  runner:
+    build: .
+    image: homelab-runner:local
+    container_name: {{ runner_container }}
+    restart: unless-stopped
+    init: true
+    group_add:
+      - "{{ runner_socket_gid }}"
+    environment:
+      RUNNER_REPO: {{ runner_repo }}
+      RUNNER_LABELS: {{ runner_labels }}
+      # The binding's contract requires these two.
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
+    volumes:
+      - type: bind
+        source: {{ runner_wyrwood_dir }}
+        target: /run/wyrwood
+        bind:
+          create_host_path: false

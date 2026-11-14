@@ -1,0 +1,48 @@
+---
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ runner_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy the image files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ runner_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - Dockerfile
+    - entrypoint.sh
+  register: runner_image_files
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ runner_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check for the Wyrwood binding's directory
+  ansible.builtin.stat:
+    path: "{{ runner_wyrwood_dir }}"
+  register: runner_binding
+
+- name: Report that the runner isn't bound yet
+  ansible.builtin.debug:
+    msg: >-
+      Bind `name` {{ runner_container }} on agent {{ inventory_hostname_short }} in the Wyrwood UI, with policy
+      homelab-runner and access group {{ runner_socket_gid }}, then run the playbook again.
+  when: not runner_binding.stat.exists
+
+- name: Build and start the runner
+  community.docker.docker_compose_v2:
+    project_src: "{{ runner_dir }}"
+    # Rebuild when the image files change; otherwise build only if the image is missing.
+    build: "{{ 'always' if runner_image_files is changed else 'policy' }}"
+    state: present
+  when: runner_binding.stat.exists

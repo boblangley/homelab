@@ -1,0 +1,7 @@
+---
+# Picks up new group membership. Only when the agent is already running; otherwise its first start does.
+- name: Restart the Wyrwood agent
+  ansible.builtin.systemd_service:
+    name: wyrwood-agent
+    state: restarted
+  when: wyrwood_active.stdout | default('') == 'active'

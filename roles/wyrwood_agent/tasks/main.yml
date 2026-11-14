@@ -14,6 +14,29 @@
     cache_valid_time: 3600
   when: wyrwood_repo.stat.exists or not ansible_check_mode
 
+- name: Create the access groups
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.gid }}"
+  loop: "{{ wyrwood_access_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Read the groups on the host
+  ansible.builtin.getent:
+    database: group
+
+# A preview can't add the agent to a group it has only pretended to create.
+- name: Add the agent to its access groups
+  ansible.builtin.user:
+    name: wyrwood
+    groups: "{{ wyrwood_access_groups | map(attribute='name') }}"
+    append: true
+  when:
+    - wyrwood_access_groups | length > 0
+    - not ansible_check_mode or wyrwood_access_groups | map(attribute='name') | difference(ansible_facts.getent_group) | length == 0
+  notify: Restart the Wyrwood agent
+
 # The agent runs only once the controller has approved it. Until then, `login` (which reuses the agent's key) asks the
 # controller again: it exits 0 once an operator has approved the agent in the Wyrwood UI, and 5 while that is pending.
 - name: Check whether the agent is running

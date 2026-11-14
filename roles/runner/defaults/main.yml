@@ -1,0 +1,13 @@
+---
+# Compose project `runner`: the GitHub Actions runner that applies this repo.
+runner_dir: /opt/docker/runner
+runner_repo: boblangley/homelab
+runner_labels: self-hosted,homelab
+
+# Wyrwood binds the container by name. Bind it before the first run: the agent creates the consumer directory and
+# its sockets, and the container mounts that directory.
+runner_container: homelab-runner
+runner_wyrwood_dir: "/run/wyrwood/containers/{{ runner_container }}"
+
+# The binding's access group. The wyrwood_agent role creates it and adds the agent to it.
+runner_socket_gid: 1502

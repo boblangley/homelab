@@ -1,0 +1,4 @@
+# SSH host keys of managed hosts. Ansible trusts only these (ansible.cfg). Each was compared with the
+# fingerprint the host reports for its own key before it was added.
+docker-infra.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKj6zKqp+zO8BYZCPO2fae/Trghs8C1W0CyInX+loLIA
+wtr-pro.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZExeGRYCo0aCQK+5PVOLp2JdBhqyUQH45QeKh9e3Ti

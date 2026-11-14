@@ -1,0 +1,42 @@
+# Applies this repo on the self-hosted runner.
+# Runs only on pushes to main and by hand, never for pull requests: a pull request from a fork must not run code on a
+# runner that can reach every host.
+name: Apply
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: Preview only (--check --diff)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: [self-hosted, homelab]
+    env:
+      ANSIBLE_FORCE_COLOR: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      # Connects as `ansible`, and reads OpenBao through the runner's Wyrwood socket, which the runner exposes on
+      # 127.0.0.1:8200. The runner play is skipped: recreating the runner would end this job.
+      - name: Apply
+        run: >-
+          ansible-playbook site.yml --skip-tags runner
+          -e ansible_user=ansible
+          -e ansible_hashi_vault_url=http://127.0.0.1:8200
+          -e ansible_hashi_vault_auth_method=none
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.preview) && '--check --diff' || '' }}

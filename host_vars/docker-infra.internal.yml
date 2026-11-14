@@ -5,3 +5,7 @@
 accounts_services:
   - name: core
     uid: 1000
+
+wyrwood_access_groups:
+  - name: homelab-runner
+    gid: 1502
