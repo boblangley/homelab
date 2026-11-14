@@ -1,0 +1,25 @@
+---
+# Compose project `clickhouse`: a single ClickHouse server for Xolotl's request data (from NATS) and OpenTelemetry.
+# Only containers reach it, on the homelab overlay as clickhouse.internal; the host publishes no ports. Plaintext
+# ports are off: native protocol over TLS on 9440, HTTPS on 8443.
+#
+# TLS: a certificate from OpenBao, kept current by role service_cert.
+#
+# Users, their grants and settings profiles are declared here (clickhouse_users); each password is in OpenBao at
+# homelab/clickhouse/<user>, field password. The server gets only SHA-256 hashes, in a root-only file.
+clickhouse_dir: /opt/docker/clickhouse
+clickhouse_data: /srv/clickhouse
+clickhouse_version: 26.8.37.168
+
+# The server runs as this uid, which owns its data and key.
+clickhouse_uid: 1000
+
+clickhouse_name: clickhouse.internal
+
+# Share of host memory the server may use. Raise it once wtr-pro has more RAM.
+clickhouse_memory_ratio: 0.5
+
+# name, profile (default or readonly), and either grants (GRANT statements, without the TO clause) or
+# access_management: true. ClickHouse rejects a user with both; one with access_management has full access and manages
+# users and grants with SQL.
+clickhouse_users: []

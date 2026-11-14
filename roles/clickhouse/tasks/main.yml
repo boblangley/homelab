@@ -1,0 +1,74 @@
+---
+- name: Read the user passwords from OpenBao
+  ansible.builtin.set_fact:
+    clickhouse_passwords: >-
+      {{ clickhouse_passwords | default({}) | combine({item.name: lookup('community.hashi_vault.vault_kv2_get',
+      'homelab/clickhouse/' ~ item.name, engine_mount_point='kv').secret.password}) }}
+  loop: "{{ clickhouse_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+# Directories, not single files, are mounted: Ansible replaces a file with a new one, and a container keeps seeing the
+# old file. ClickHouse rereads users.d and the certificate when they change.
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ clickhouse_dir }}", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_dir }}/config.d", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_dir }}/users.d", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_dir }}/tls", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_data }}", owner: "{{ clickhouse_uid }}", mode: "0750" }
+  register: clickhouse_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ clickhouse_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Ports and memory settings need a restart.
+- name: Write the server config
+  ansible.builtin.template:
+    src: config.xml.j2
+    dest: "{{ clickhouse_dir }}/config.d/homelab.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ClickHouse
+
+# Password hashes: readable only by the server's uid. Never shown in a diff.
+- name: Write the users
+  ansible.builtin.template:
+    src: users.xml.j2
+    dest: "{{ clickhouse_dir }}/users.d/homelab.xml"
+    owner: "{{ clickhouse_uid }}"
+    group: "{{ clickhouse_uid }}"
+    mode: "0400"
+  no_log: true
+  diff: false
+
+- name: Keep the TLS certificate current
+  ansible.builtin.include_role:
+    name: service_cert
+  vars:
+    service_cert_dir: "{{ clickhouse_dir }}/tls"
+    service_cert_name: "{{ clickhouse_name }}"
+    service_cert_owner: "{{ clickhouse_uid }}"
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ clickhouse_dir }}"
+    state: present
+  register: clickhouse_start
+  # A preview has only pretended to create the project directory on a first run.
+  when: not (ansible_check_mode and clickhouse_dirs is changed)
