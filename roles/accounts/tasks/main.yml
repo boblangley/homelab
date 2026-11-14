@@ -1,0 +1,74 @@
+---
+- name: Read the people with accounts from OpenBao
+  ansible.builtin.set_fact:
+    accounts_humans: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', accounts_humans_path, engine_mount_point='kv').secret.humans }}
+  run_once: true
+  delegate_to: localhost
+  become: false
+
+- name: Read the groups on the host
+  ansible.builtin.getent:
+    database: group
+
+- name: Configure the agent account
+  ansible.builtin.import_tasks: agent.yml
+
+- name: Create service account groups
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.uid }}"
+  loop: "{{ accounts_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# Locked password, no home, no login shell.
+- name: Create service accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    group: "{{ item.name }}"
+    groups: "{{ item.groups | default([]) | select('in', ansible_facts.getent_group) | list }}"
+    append: true
+    comment: "{{ item.comment | default(omit) }}"
+    home: /nonexistent
+    create_home: false
+    shell: /usr/sbin/nologin
+    password: "!"
+  loop: "{{ accounts_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create people's groups
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.uid }}"
+  loop: "{{ accounts_humans | rejectattr('state', 'defined') + accounts_humans | selectattr('state', 'defined') | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# New accounts get a locked password: certificate login works, sudo needs a password set by hand.
+# Existing passwords are never changed.
+- name: Create people's accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    group: "{{ item.name }}"
+    groups: "{{ item.groups | default([]) | select('in', ansible_facts.getent_group) | list }}"
+    append: true
+    shell: "{{ item.shell | default(omit) }}"
+    create_home: true
+    password: "!"
+    update_password: on_create
+  loop: "{{ accounts_humans | rejectattr('state', 'defined') + accounts_humans | selectattr('state', 'defined') | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Remove people's accounts, keeping their home
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: absent
+    remove: false
+  loop: "{{ accounts_humans | selectattr('state', 'defined') | selectattr('state', 'eq', 'absent') }}"
+  loop_control:
+    label: "{{ item.name }}"

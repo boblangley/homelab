@@ -1,0 +1,13 @@
+---
+# uid ranges: 1000 is per host (see host_vars), 1001 and up are people, 1500 is `agent`.
+
+# People. Read from OpenBao (kv, homelab/accounts) so names stay out of this repo. Each entry:
+#   name    Pocket ID username, which is also the SSH certificate principal
+#   uid     gid is the same
+#   groups  added where the group exists on the host; never removed
+#   shell   optional; left as it is when unset
+#   state   optional; `absent` removes the account and keeps its home
+accounts_humans_path: homelab/accounts
+
+# Service accounts this host needs, from host_vars: name, uid, and optional comment and groups.
+accounts_services: []

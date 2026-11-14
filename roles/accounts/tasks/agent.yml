@@ -1,0 +1,32 @@
+---
+# `agent` (uid 1500) is how Ansible and AI agents reach a host. A new host gets it by hand first; see README.
+
+- name: Create the agent group
+  ansible.builtin.group:
+    name: agent
+    gid: 1500
+
+- name: Create the agent account
+  ansible.builtin.user:
+    name: agent
+    uid: 1500
+    group: agent
+    shell: /bin/bash
+    create_home: true
+    password: "!"
+    update_password: on_create
+
+- name: Authorize the operator's key for agent
+  ansible.posix.authorized_key:
+    user: agent
+    key: "{{ lookup('ansible.builtin.file', 'agent.pub') }}"
+    exclusive: true
+
+- name: Give agent passwordless sudo
+  ansible.builtin.copy:
+    content: "agent ALL=(ALL) NOPASSWD: ALL\n"
+    dest: /etc/sudoers.d/agent
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
