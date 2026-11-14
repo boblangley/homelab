@@ -29,6 +29,12 @@
   roles:
     - edge
 
+- name: Identity provider
+  hosts: identity:&managed
+  become: true
+  roles:
+    - identity
+
 - name: Wyrwood controller and Xolotl
   hosts: wyrd:&managed
   become: true
