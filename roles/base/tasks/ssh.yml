@@ -1,0 +1,38 @@
+---
+# Logins are SSH certificates signed by OpenBao, or keys. Never passwords.
+# sshd keeps the first value it reads, so the drop-in that disables passwords sorts first.
+
+- name: Install the OpenBao SSH user CA key
+  ansible.builtin.copy:
+    src: openbao-user-ca.pub
+    dest: /etc/ssh/openbao-user-ca.pub
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sshd
+
+- name: Trust certificates signed by the OpenBao SSH user CA
+  ansible.builtin.copy:
+    content: "TrustedUserCAKeys /etc/ssh/openbao-user-ca.pub\n"
+    dest: /etc/ssh/sshd_config.d/10-openbao-user-ca.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sshd
+
+- name: Disable password login
+  ansible.builtin.copy:
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+    dest: /etc/ssh/sshd_config.d/01-no-passwords.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload sshd
+
+- name: Remove the installer's password login setting
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    state: absent
+  notify: Reload sshd

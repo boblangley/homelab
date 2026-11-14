@@ -1,0 +1,19 @@
+---
+- name: Update CA certificates
+  ansible.builtin.command: update-ca-certificates
+  changed_when: true
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Check sshd configuration
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  listen: Reload sshd
+
+- name: Reload ssh service
+  ansible.builtin.systemd_service:
+    name: ssh
+    state: reloaded
+  listen: Reload sshd

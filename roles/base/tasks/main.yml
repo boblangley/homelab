@@ -1,0 +1,40 @@
+---
+- name: Set the time zone
+  community.general.timezone:
+    name: "{{ base_timezone }}"
+
+- name: Trust the homelab root CA
+  ansible.builtin.copy:
+    src: homelab-root.crt
+    dest: /usr/local/share/ca-certificates/homelab-root.crt
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update CA certificates
+
+# Wyrd Company packages (wyrwood, toha, dcb). Key fingerprint 5EB4 73F2 0B0E 146B FAE0 EA03 FF65 A4E1 C35F 60F1.
+- name: Install the Wyrd Company apt signing key
+  ansible.builtin.copy:
+    src: wyrd-company.asc
+    dest: /etc/apt/keyrings/wyrd-company.asc
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update apt cache
+
+- name: Add the Wyrd Company apt repository
+  ansible.builtin.copy:
+    content: |
+      Types: deb
+      URIs: https://repo.wyrd.foo/apt
+      Suites: stable
+      Components: main
+      Signed-By: /etc/apt/keyrings/wyrd-company.asc
+    dest: /etc/apt/sources.list.d/wyrd-company.sources
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update apt cache
+
+- name: Configure sshd
+  ansible.builtin.import_tasks: ssh.yml

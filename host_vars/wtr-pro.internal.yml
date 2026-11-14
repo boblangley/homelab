@@ -1,0 +1,4 @@
+---
+# TianBei WTR Pro: Ryzen 7 5825U, 32 GB, Ubuntu 26.04.
+# Disks: 500 GB NVMe for the system, 4 TB NVMe (ext4) mounted at /srv.
+# uid 1000 is `services`, the account its services run as.

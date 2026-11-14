@@ -1,0 +1,6 @@
+---
+- name: Base configuration
+  hosts: managed
+  become: true
+  roles:
+    - base
