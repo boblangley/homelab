@@ -1,0 +1,7 @@
+---
+# Core infrastructure VM: Swarm manager, Arcane manager, ingress, identity, Wyrwood controller.
+# uid 1000 is `core`, which owns the core services' data.
+
+accounts_services:
+  - name: core
+    uid: 1000

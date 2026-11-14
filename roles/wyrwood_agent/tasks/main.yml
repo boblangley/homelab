@@ -1,11 +1,18 @@
 ---
 # Package from the Wyrd Company apt repository, which the base role adds.
+- name: Check for the Wyrd Company apt repository
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/wyrd-company.sources
+  register: wyrwood_repo
+
+# A preview can't install from a repository the base role has only pretended to add.
 - name: Install the Wyrwood agent
   ansible.builtin.apt:
     name: "wyrwood={{ wyrwood_version }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
+  when: wyrwood_repo.stat.exists or not ansible_check_mode
 
 # The agent runs only once the controller has approved it. Until then, `login` (which reuses the agent's key) asks the
 # controller again: it exits 0 once an operator has approved the agent in the Wyrwood UI, and 5 while that is pending.

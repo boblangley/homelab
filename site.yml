@@ -10,7 +10,17 @@
   become: true
   roles:
     - docker
+
+- name: Docker agent project
+  hosts: docker_workers:&managed
+  become: true
+  roles:
     - docker_agent
+
+- name: Wyrwood agent
+  hosts: wyrwood_agents:&managed
+  become: true
+  roles:
     - wyrwood_agent
 
 # After Docker, so people get the docker group on the same run.
