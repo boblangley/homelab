@@ -1,0 +1,90 @@
+---
+- name: Read the secrets from OpenBao
+  ansible.builtin.set_fact:
+    edge_secrets: "{{ lookup('community.hashi_vault.vault_kv2_get', edge_secrets_path, engine_mount_point='kv').secret }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ edge_dir }}"
+    - "{{ edge_dir }}/ca-dist"
+    - "{{ edge_dir }}/ca-dist/qr"
+    - "{{ edge_dir }}/ca-dist/download"
+
+- name: Copy the CA page
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ edge_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - ca-dist/index.html
+    - ca-dist/qr/android.svg
+    - ca-dist/qr/ios.svg
+    - ca-dist/qr/ca-page.svg
+
+- name: Publish the homelab root certificate on the CA page
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../base/files/homelab-root.crt"
+    dest: "{{ edge_dir }}/ca-dist/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - homelab-root.crt
+    - download/homelab-root.crt
+
+- name: Copy the Corefile
+  ansible.builtin.copy:
+    src: Corefile
+    dest: "{{ edge_dir }}/Corefile"
+    owner: root
+    group: root
+    mode: "0644"
+  register: edge_corefile
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ edge_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Never shown in a diff: Actions logs of this public repo are public.
+- name: Write the secret env files
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ edge_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - dest: opnsense.env
+      content: |
+        OPNSENSE_API_KEY={{ edge_secrets.opnsense_api_key }}
+        OPNSENSE_API_SECRET={{ edge_secrets.opnsense_api_secret }}
+    - dest: pihole.env
+      content: |
+        FTLCONF_webserver_api_password={{ edge_secrets.pihole_password }}
+  loop_control:
+    label: "{{ item.dest }}"
+  register: edge_env
+  no_log: true
+  diff: false
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ edge_dir }}"
+    state: present
+    # Recreate when the Corefile or an env file changes; compose only notices changes to compose.yml.
+    recreate: "{{ 'always' if (edge_corefile is changed or edge_env is changed) else 'auto' }}"

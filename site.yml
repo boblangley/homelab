@@ -23,6 +23,12 @@
   roles:
     - wyrwood_agent
 
+- name: Network edge
+  hosts: edge:&managed
+  become: true
+  roles:
+    - edge
+
 - name: Wyrwood controller and Xolotl
   hosts: wyrd:&managed
   become: true

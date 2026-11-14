@@ -1,0 +1,30 @@
+---
+# Compose project `edge`: the network's front door on docker-infra. Caddy ingress, CoreDNS for homelab.internal,
+# Pi-hole, and the Tailscale subnet router.
+#
+# Its secrets are written to root-only env files by Ansible, from OpenBao, rather than fetched at run time:
+# everything else reaches the network through this project, so it must start cold, before OpenBao or Wyrwood.
+edge_dir: /opt/docker/edge
+edge_data: /srv/edge
+
+edge_ingress_version: 0.2.0
+edge_coredns_version: 1.15.0
+edge_pihole_version: 2026.11.0
+edge_tailscale_version: v1.104.4
+
+# OPNsense API key and secret, and the Pi-hole web password: opnsense_api_key, opnsense_api_secret, pihole_password.
+edge_secrets_path: homelab/edge
+
+# Hosts whose Docker engine Caddy reads labels from, through each host's read-only socket proxy (role docker_agent).
+edge_socket_proxies: []
+
+# Fixed addresses.
+edge_opnsense_url: https://10.99.0.1
+edge_ingress_opnsense_ip: 10.99.0.2
+edge_coredns_ip: 10.0.1.253
+edge_pihole_ip: 192.168.0.2
+edge_pihole_upstream: 192.168.0.1
+edge_lan_parent: ens18
+edge_lan_subnet: 192.168.0.0/24
+edge_lan_gateway: 192.168.0.1
+edge_tailscale_routes: 10.0.1.0/24
