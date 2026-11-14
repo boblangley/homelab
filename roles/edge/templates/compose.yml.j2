@@ -114,6 +114,21 @@ services:
       default:
       homelab:
 
+{% for tunnel in edge_tunnels %}
+  # Cloudflare tunnel for the {{ tunnel }} account. Routes are set in the Cloudflare dashboard.
+  cloudflared-{{ tunnel }}:
+    image: cloudflare/cloudflared:{{ edge_cloudflared_version }}
+    container_name: cloudflared-{{ tunnel }}
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/tunnel-token
+    volumes:
+      - ./cloudflared-{{ tunnel }}.token:/run/secrets/tunnel-token:ro
+    networks:
+      homelab:
+
+{% endfor %}
 networks:
   default:
     driver: bridge
