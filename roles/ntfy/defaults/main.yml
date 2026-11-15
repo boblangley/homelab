@@ -1,0 +1,25 @@
+---
+# Compose project `ntfy`: the ntfy notification server, public at ntfy_base_url through the wyrd Cloudflare tunnel
+# (cloudflared on docker-infra reaches it on the homelab overlay as ntfy.internal:8080; the route is set in the
+# Cloudflare dashboard). The host publishes no ports.
+#
+# Access is deny-all except the users and ACL entries declared here and in OpenBao. The users and their tokens are
+# secret, so they stay out of the repo: OpenBao holds them at kv/homelab/ntfy, fields auth_users and auth_tokens
+# (ntfy's NTFY_AUTH_USERS and NTFY_AUTH_TOKENS). Sidecar ntfy-secrets, bound in Wyrwood (compose ntfy/secrets, read
+# only that path), reads them through vault.sock into an in-memory volume, and ntfy's entrypoint loads them. The image
+# has no client that can reach a Unix socket, hence the sidecar.
+ntfy_dir: /opt/docker/ntfy
+ntfy_data: /srv/ntfy
+ntfy_version: v2.38.0
+ntfy_curl_version: 8.23.0
+
+# The server runs as this uid, which owns its data.
+ntfy_uid: 1000
+
+ntfy_name: ntfy.internal
+ntfy_base_url: ""
+# Wakes the iOS app through ntfy.sh's relay, which gets a hash of the topic and the message ID, never the message.
+ntfy_upstream_base_url: https://ntfy.sh
+
+# ACL entries for the non-admin users: "<user>:<topic or pattern>:<rw|ro|wo|deny>". Not secret.
+ntfy_access: []

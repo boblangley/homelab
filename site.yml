@@ -65,6 +65,12 @@
   roles:
     - otel_gateway
 
+- name: ntfy
+  hosts: ntfy:&managed
+  become: true
+  roles:
+    - ntfy
+
 # After the gateway, which the agents send to.
 - name: OpenTelemetry agent
   hosts: docker:&managed

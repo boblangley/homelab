@@ -1,0 +1,10 @@
+---
+# ntfy reads its environment and users only at start. Not when the start step just created or recreated the
+# containers, nor in a preview of the first run.
+- name: Restart ntfy
+  community.docker.docker_compose_v2:
+    project_src: "{{ ntfy_dir }}"
+    state: restarted
+  when:
+    - ntfy_start is not changed
+    - not (ansible_check_mode and ntfy_dirs is changed)
