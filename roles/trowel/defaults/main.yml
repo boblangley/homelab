@@ -1,0 +1,21 @@
+---
+# Compose project `trowel`: Trowel, the webhook relay. It takes webhooks on the homelab overlay as
+# trowel.internal:8080 (the wyrd Cloudflare tunnel routes the public hostname to it; the route is set in the
+# Cloudflare dashboard) and publishes each to NATS JetStream. The host publishes no ports.
+#
+# Secrets come through its Wyrwood binding (compose trowel/trowel, directory trowel): Trowel reads its NATS .creds
+# (homelab/nats/trowel, field creds) and each webhook's secret from OpenBao through vault.sock, at startup and on
+# reload. Nothing secret is in its environment or on disk. The streams its webhooks publish to are role nats's.
+trowel_dir: /opt/docker/trowel
+trowel_version: 0.3.0
+trowel_name: trowel.internal
+trowel_container: trowel
+trowel_wyrwood_dir: "/run/wyrwood/containers/{{ trowel_container }}"
+
+# The binding's access group: the image runs as uid 100, which reaches the sockets through it. The wyrwood_agent role
+# creates the group and adds the agent to it.
+trowel_socket_gid: 1503
+
+# Trowel's webhooks, as in its configuration (path, subject, verify, ...). Secrets as *_vault references, with paths
+# in mount kv.
+trowel_webhooks: []

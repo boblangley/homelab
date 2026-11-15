@@ -1,0 +1,54 @@
+---
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ trowel_dir }}"
+    - "{{ trowel_dir }}/config"
+  register: trowel_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ trowel_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Trowel notices the change and reloads; a config that fails to load leaves the running one in place.
+- name: Write the config
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ trowel_dir }}/config/config.yml"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: >-
+      docker run --rm --network none --user 0:0 -v %s:/config/config.yml:ro
+      ghcr.io/wyrd-company/trowel:{{ trowel_version }} -config /config/config.yml -validate
+
+- name: Check for the Wyrwood binding's directory
+  ansible.builtin.stat:
+    path: "{{ trowel_wyrwood_dir }}"
+  register: trowel_binding
+
+- name: Report that Trowel isn't bound yet
+  ansible.builtin.debug:
+    msg: >-
+      Bind compose {{ trowel_container }}/{{ trowel_container }} (directory {{ trowel_container }}) on agent
+      {{ inventory_hostname_short }} in the Wyrwood UI, with policy trowel and access group {{ trowel_socket_gid }},
+      then run the playbook again.
+  when: not trowel_binding.stat.exists
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ trowel_dir }}"
+    state: present
+  when:
+    - trowel_binding.stat.exists
+    # A preview has only pretended to create the project directory on a first run.
+    - not (ansible_check_mode and trowel_dirs is changed)

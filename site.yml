@@ -71,6 +71,12 @@
   roles:
     - ntfy
 
+- name: Trowel
+  hosts: trowel:&managed
+  become: true
+  roles:
+    - trowel
+
 # After the gateway, which the agents send to.
 - name: OpenTelemetry agent
   hosts: docker:&managed
