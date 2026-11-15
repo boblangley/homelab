@@ -1,0 +1,8 @@
+---
+# AZW GTR (Ryzen 9 6900HX, 64 GB), Ubuntu 26.04. Docker worker for Arcane sandboxes, and the devcontainer host: it
+# runs Menagerie and the dcb devcontainers, with their files in /workspaces.
+# Disk: one 2 TB NVMe for the system, /srv and /workspaces.
+#
+# uid 1000 is `workspaces`, the account the devcontainers and Menagerie's workspace sessions run as. It is not in
+# accounts_services: that would give it home /nonexistent and shell nologin, and it needs /home/workspaces and bash.
+# The Wyrwood agent is in its group (gid 1000), added by hand, for the workspace sockets.
