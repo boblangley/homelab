@@ -1,4 +1,6 @@
-<!-- Managed by Ansible (homelab repo, role clickhouse). The B2 key, from OpenBao. -->
+<!-- Managed by Ansible (homelab repo, role clickhouse). The B2 key, from OpenBao.
+     Named collection b2 is for the archive (s3() table function); disk b2 is for backups, because BACKUP TO S3
+     writes its lock with If-None-Match, which B2 doesn't implement, and a backup to a disk doesn't. -->
 <clickhouse>
     <named_collections>
         <b2>
@@ -7,4 +9,19 @@
             <secret_access_key>{{ clickhouse_b2_key.application_key }}</secret_access_key>
         </b2>
     </named_collections>
+    <storage_configuration>
+        <disks>
+            <b2>
+                <type>s3_plain</type>
+                <!-- Start even when B2 can't be reached; only a backup then fails. -->
+                <skip_access_check>true</skip_access_check>
+                <endpoint>{{ clickhouse_b2_endpoint }}/{{ clickhouse_b2_bucket }}/</endpoint>
+                <access_key_id>{{ clickhouse_b2_key.key_id }}</access_key_id>
+                <secret_access_key>{{ clickhouse_b2_key.application_key }}</secret_access_key>
+            </b2>
+        </disks>
+    </storage_configuration>
+    <backups>
+        <allowed_disk>b2</allowed_disk>
+    </backups>
 </clickhouse>
