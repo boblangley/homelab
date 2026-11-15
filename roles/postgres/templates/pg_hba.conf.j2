@@ -1,0 +1,6 @@
+# Managed by Ansible (homelab repo, role postgres).
+# TYPE   DATABASE  USER  ADDRESS  METHOD
+# Inside the container only (docker exec psql, pg_isready).
+local    all       all            trust
+# Everything over the network must use TLS and SCRAM. No plain `host` lines on purpose.
+hostssl  all       all   all      scram-sha-256

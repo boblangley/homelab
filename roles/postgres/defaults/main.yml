@@ -1,0 +1,16 @@
+---
+# Compose project `postgres`: a single PostgreSQL 18 server with pgvector, shared by homelab apps. Only containers
+# reach it, on the homelab overlay as postgres.internal:5432; the host publishes no ports.
+#
+# TLS: a certificate from OpenBao, kept current by role service_cert. Network logins need TLS and SCRAM.
+#
+# The superuser's password is in OpenBao at homelab/postgres/postgres, field password. The server reads it only when
+# it creates a new data directory.
+postgres_dir: /opt/docker/postgres
+postgres_data: /srv/postgres
+postgres_version: 0.8.7-pg18-trixie
+
+# The server runs as this uid, which owns its data and key.
+postgres_uid: 1000
+
+postgres_name: postgres.internal

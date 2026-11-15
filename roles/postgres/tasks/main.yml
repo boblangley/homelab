@@ -1,0 +1,72 @@
+---
+- name: Read the superuser password from OpenBao
+  ansible.builtin.set_fact:
+    postgres_password: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/postgres/postgres',
+      engine_mount_point='kv').secret.password }}
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ postgres_dir }}", owner: root, mode: "0755" }
+    - { path: "{{ postgres_dir }}/config", owner: root, mode: "0755" }
+    - { path: "{{ postgres_dir }}/tls", owner: root, mode: "0755" }
+    - { path: "{{ postgres_data }}", owner: "{{ postgres_uid }}", mode: "0700" }
+  register: postgres_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ postgres_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Write the superuser password
+  ansible.builtin.copy:
+    content: "POSTGRES_PASSWORD={{ postgres_password }}\n"
+    dest: "{{ postgres_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Write the client authentication rules
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "{{ postgres_dir }}/config/pg_hba.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload PostgreSQL
+
+- name: Keep the TLS certificate current
+  ansible.builtin.include_role:
+    name: service_cert
+  vars:
+    service_cert_dir: "{{ postgres_dir }}/tls"
+    service_cert_name: "{{ postgres_name }}"
+    service_cert_owner: "{{ postgres_uid }}"
+
+- name: Reload PostgreSQL for a new certificate
+  ansible.builtin.debug:
+    msg: New certificate for {{ postgres_name }}
+  changed_when: true
+  when: service_cert_renewed
+  notify: Reload PostgreSQL
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgres_dir }}"
+    state: present
+  # A preview has only pretended to create the project directory on a first run.
+  when: not (ansible_check_mode and postgres_dirs is changed)
