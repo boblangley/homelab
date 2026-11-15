@@ -27,6 +27,16 @@ service_name = "xolotl"
 log_format = "json"
 log_filter = "info"
 
+# Each exchange to NATS stream XOLOTL (role nats, wtr-pro), which ClickHouse loads into database xolotl. The login is
+# the vault secret `nats` (kv/xolotl/nats: user, password). Xolotl stops at startup when the stream is missing.
+[export.nats]
+url = "tls://nats.internal:4222"
+stream = "XOLOTL"
+ca_cert = "/etc/xolotl/homelab-root.crt"
+bodies = true
+max_body_bytes = 4194304
+queue_mb = 32
+
 [ui.oidc]
 issuer = "https://pocketid.internal"
 client_id = "{{ wyrd_ids.xolotl_client_id }}"
