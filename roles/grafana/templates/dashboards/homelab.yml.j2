@@ -1,0 +1,14 @@
+# Managed by Ansible (homelab repo, role grafana).
+# The dashboards in the repo (role grafana, files/dashboards), a Grafana folder per subdirectory. They can't be saved
+# from the UI: change them in the repo. Dashboards made in the UI live in Grafana's database.
+apiVersion: 1
+
+providers:
+  - name: homelab
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 60
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: true

@@ -39,8 +39,9 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/accounts` | the people on each host | `accounts` |
 | `homelab/arcane` | `encryption_key` | `arcane` |
 | `homelab/b2/clickhouse` | `key_id`, `application_key` | `clickhouse` (archive and backups) |
-| `homelab/clickhouse/<user>` | `password` | `clickhouse`, `otel_gateway` (`otel`) |
+| `homelab/clickhouse/<user>` | `password` | `clickhouse`, `otel_gateway` (`otel`), `grafana` (`reader`) |
 | `homelab/edge` | `opnsense_api_key`, `opnsense_api_secret`, `pihole_password`, `cloudflared_<tunnel>_token` | `edge` |
+| `homelab/grafana` | `admin_password`, `secret_key`, `oidc_client_id`, `oidc_client_secret` | `grafana` |
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
 | `homelab/identity` | `encryption_key` | `identity` |
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
@@ -119,6 +120,10 @@ rules:
 
 ## Pocket ID
 
-`pocketid.internal`, role `identity`. OIDC clients for OpenBao, Wyrwood, Xolotl, Menagerie and Arcane; their client
-IDs are installation identifiers, in OpenBao. Groups the services check: `ssh_users` (SSH certificates),
-`xolotl_admins` (Xolotl's admin UI).
+`pocketid.internal`, role `identity`. OIDC clients for OpenBao, Wyrwood, Xolotl, Menagerie, Arcane and Grafana; their
+client IDs are installation identifiers, in OpenBao. Groups the services check: `ssh_users` (SSH certificates),
+`xolotl_admins` (Xolotl's admin UI), `grafana_admins` and `grafana_editors` (Grafana's Admin and Editor roles).
+
+The Grafana client: callback URL `https://grafana.internal/login/generic_oauth`, PKCE on, and its allowed groups are
+the people who may sign in (as Viewers, unless in a Grafana group). `scripts/openbao/grafana.fish` stores its ID and
+secret.

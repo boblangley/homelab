@@ -43,6 +43,9 @@ clickhouse_users:
       - GRANT SELECT ON otel.*
       - GRANT SELECT ON xolotl.*
 
+# Grafana (role grafana) at https://grafana.internal reads ClickHouse as reader. Pocket ID client Grafana; its groups
+# grafana_admins and grafana_editors make Admins and Editors, anyone else it lets in is a Viewer.
+
 # Days each kind of OpenTelemetry data is kept in ClickHouse; older data is still in the B2 archive.
 otel_retention_days:
   traces: 14
