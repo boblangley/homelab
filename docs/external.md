@@ -28,6 +28,7 @@ homelab's data live.
 | root | `homelab-ansible` | Read `wyrwood/kv/data/homelab/*`; issue from `wyrwood/pki_services/issue/homelab-services`. Given to the operator's OIDC identity, for workstation runs |
 | root | `ssh-user` | Sign SSH user certificates. Given with the OIDC login |
 | `wyrwood` | `homelab-runner` | The Actions runner's binding; includes issuing from `pki_services/issue/homelab-services` |
+| `wyrwood` | Wyrwood policy `homelab-agent` | Read `transit/keys/homelab-agent` and update `transit/sign/homelab-agent`; offers the `homelab-agent` SSH identity. Selected only by `devcontainer-boblangley-dev` on gtr6 |
 
 Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interface, not with `bao policy write`.
 
@@ -65,6 +66,7 @@ Controller `wyrwood.internal` (docker-infra); an agent on every Docker host. Bin
 | docker-infra | name `homelab-runner` | `homelab-runner` | 1502 `homelab-runner` |
 | gtr6 | compose `menagerie/menagerie` | `menagerie` | 1000 `workspaces` |
 | gtr6 | name `devcontainer-<slug>`, one per workspace | `workspace`, `xolotl-client-key` | 1000 `workspaces` |
+| gtr6 | name `devcontainer-boblangley-dev` (additional policy) | `homelab-agent` | 1000 `workspaces` |
 | ser6-max | compose `hermes/hermes` | `hermes-agent` | |
 | wtr-pro | compose `ntfy/secrets`, directory `ntfy-secrets` | `ntfy`: read `kv/data/homelab/ntfy` | |
 | wtr-pro | compose `trowel/trowel`, directory `trowel` | `trowel`: read `kv/data/homelab/nats/trowel` and `kv/data/homelab/trowel/github/*` | 1503 `trowel` |

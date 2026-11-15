@@ -1,17 +1,21 @@
 ---
 # uid ranges: 1000 is per host (see host_vars), 1001 and up are people, 1500 and up are automation.
 
-# Automation accounts on every host. Each authorizes one key, from files/.
+# Automation accounts on every host. Each authorizes an explicit list of keys from files/.
 #   agent    Ansible from a workstation, and AI agents acting by hand: the operator's key
+#            and the boblangley-dev workspace's dedicated OpenBao Transit key
 #   ansible  Ansible from the Actions runner: OpenBao Transit key `homelab-ansible` in the wyrwood namespace,
 #            which signs through the runner's Wyrwood SSH agent and never leaves OpenBao
 accounts_automation:
   - name: agent
     uid: 1500
-    key: agent.pub
+    keys:
+      - agent.pub
+      - homelab-agent.pub
   - name: ansible
     uid: 1501
-    key: ansible.pub
+    keys:
+      - ansible.pub
 
 # People. Read from OpenBao (kv, homelab/accounts) so names stay out of this repo. Each entry:
 #   name    Pocket ID username, which is also the SSH certificate principal
