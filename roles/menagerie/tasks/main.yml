@@ -1,0 +1,56 @@
+---
+- name: Read the installation identifiers from OpenBao
+  ansible.builtin.set_fact:
+    menagerie_ids: "{{ lookup('community.hashi_vault.vault_kv2_get', menagerie_ids_path, engine_mount_point='kv').secret }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ menagerie_dir }}"
+    - "{{ menagerie_dir }}/config"
+  register: menagerie_dirs
+
+# Left by the hand-made copy that came before this role.
+- name: Remove old files
+  ansible.builtin.file:
+    path: "{{ menagerie_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - config.yml
+    - compose.yml.bak-env
+    - config.yml.bak-operator-key
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ menagerie_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Identifiers only, no secrets, but they stay out of the public Actions log.
+- name: Write the config
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ menagerie_dir }}/config/config.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  diff: false
+  notify: Restart Menagerie
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ menagerie_dir }}"
+    state: present
+  register: menagerie_start
+  # A preview has only pretended to create the project directory on a first run.
+  when: not (ansible_check_mode and menagerie_dirs is changed)

@@ -65,6 +65,12 @@
   roles:
     - postgres
 
+- name: Menagerie
+  hosts: menagerie:&managed
+  become: true
+  roles:
+    - menagerie
+
 # Tagged so the runner can skip itself; apply it from a workstation.
 - name: Actions runner
   hosts: runners:&managed

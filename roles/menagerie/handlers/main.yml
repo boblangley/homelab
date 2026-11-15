@@ -1,0 +1,10 @@
+---
+# Menagerie reads its config only at start. Not when the start step just created or recreated the
+# container, nor in a preview of the first run.
+- name: Restart Menagerie
+  community.docker.docker_compose_v2:
+    project_src: "{{ menagerie_dir }}"
+    state: restarted
+  when:
+    - menagerie_start is not changed
+    - not (ansible_check_mode and menagerie_dirs is changed)
