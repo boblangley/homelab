@@ -10,7 +10,8 @@ wyrwood_access_groups:
   - name: homelab-runner
     gid: 1502
 
-# Docker workers whose labels Caddy reads, through each one's socket proxy. Includes hosts not yet managed here.
+# Docker workers whose labels Caddy reads, through each one's socket proxy. List a host only once its proxy runs: a
+# name that doesn't resolve makes the ingress manager exit and restart, taking ingress down with it.
 edge_socket_proxies:
   - gtr6
   - ser6-p
