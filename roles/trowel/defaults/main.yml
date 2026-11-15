@@ -16,6 +16,28 @@ trowel_wyrwood_dir: "/run/wyrwood/containers/{{ trowel_container }}"
 # creates the group and adds the agent to it.
 trowel_socket_gid: 1503
 
-# Trowel's webhooks, as in its configuration (path, subject, verify, ...). Secrets as *_vault references, with paths
+# GitHub organizations or accounts, each with its own webhook at /github/<name> and its own secret in OpenBao at
+# homelab/trowel/github/<name>, field webhook_secret, so one owner's secret is never another's. Each publishes
+# github.<owner>.<repo>.<event>.<action>: broad to specific, so a consumer selects with wildcards (one repo:
+# github.<owner>.<repo>.>; every PR: github.*.*.pull_request.>). A token the event lacks (the repo of an org event,
+# the action of a push) is `none`, and a `.` in a value becomes `_dot_`. The transform adds the three tokens as headers
+# X-Github-Owner, X-Github-Repo and X-Github-Action, beside GitHub's own. Bodies up to NATS's 8 MiB max_payload;
+# de-duplicated by GitHub's delivery ID.
+trowel_github_orgs: []
+
+trowel_github_transform: |-
+  (
+    $token := function($s) { $exists($s) and $s != "" ? $replace($string($s), ".", "_dot_") : "none" };
+    $owner := payload.repository.owner.login ? payload.repository.owner.login
+      : payload.organization.login ? payload.organization.login
+      : payload.installation.account.login;
+    $merge([headers, {
+      "X-Github-Owner": $token($owner),
+      "X-Github-Repo": $token(payload.repository.name),
+      "X-Github-Action": $token(payload.action)
+    }])
+  )
+
+# Other webhooks, as in Trowel's configuration (path, subject, verify, ...). Secrets as *_vault references, with paths
 # in mount kv.
 trowel_webhooks: []

@@ -19,7 +19,7 @@ nats_streams:
     max_age_days: 7
     max_gib: 50
     max_msg_mib: 8
-  # GitHub webhooks, published by Trowel as github.<event>.
+  # GitHub webhooks, published by Trowel as github.<owner>.<repo>.<event>.<action>.
   GITHUB:
     subjects: ["github.>"]
     max_age_days: 30
@@ -65,20 +65,11 @@ ntfy_access:
   - workspaces:workspaces:wo
 
 # Trowel (role trowel), through the wyrd Cloudflare tunnel as https://hooks.wyrd.team. Wyrwood binding compose
-# trowel/trowel, policy trowel (reads homelab/nats/trowel and homelab/trowel/*), access group 1503.
+# trowel/trowel, policy trowel (reads homelab/nats/trowel and homelab/trowel/github/*), access group 1503.
 wyrwood_access_groups:
   - name: trowel
     gid: 1503
-trowel_webhooks:
-  # GitHub: HMAC-signed, de-duplicated by delivery ID; bodies up to NATS's 8 MiB max_payload.
-  - path: /github
-    subject: github.{headers.X-GitHub-Event}
-    max_body_bytes: 8388608
-    message_id_header: X-GitHub-Delivery
-    verify:
-      hmac:
-        algorithm: sha256
-        header: X-Hub-Signature-256
-        prefix: sha256=
-        encoding: hex
-        secret_vault: {path: homelab/trowel/github, field: webhook_secret}
+
+# One GitHub webhook each, at https://hooks.wyrd.team/github/<name>, with its own secret.
+trowel_github_orgs:
+  - wyrd-company

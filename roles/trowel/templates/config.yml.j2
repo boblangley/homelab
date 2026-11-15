@@ -13,4 +13,17 @@ vault:
   address: unix:///run/wyrwood/vault.sock
   kv_mount: kv
 
-{{ {'webhooks': trowel_webhooks} | to_nice_yaml(indent=2, width=120, sort_keys=false) }}
+{% set github = [] %}
+{% for org in trowel_github_orgs %}
+{%   set _ = github.append({
+       'path': '/github/' ~ org,
+       'subject': 'github.{headers.X-Github-Owner}.{headers.X-Github-Repo}.{headers.X-GitHub-Event}.{headers.X-Github-Action}',
+       'max_body_bytes': 8388608,
+       'message_id_header': 'X-GitHub-Delivery',
+       'transform': {'headers': trowel_github_transform},
+       'verify': {'hmac': {
+         'algorithm': 'sha256', 'header': 'X-Hub-Signature-256', 'prefix': 'sha256=', 'encoding': 'hex',
+         'secret_vault': {'path': 'homelab/trowel/github/' ~ org, 'field': 'webhook_secret'}}},
+     }) %}
+{% endfor %}
+{{ {'webhooks': github + trowel_webhooks} | to_block_yaml }}
