@@ -1,0 +1,53 @@
+# Managed by Ansible (homelab repo, role otel_agent).
+receivers:
+  host_metrics:
+    root_path: /hostfs
+    collection_interval: {{ otel_agent_interval }}
+    scrapers:
+      # Utilization metrics are off by default; dashboards want them.
+      cpu:
+        metrics:
+          system.cpu.utilization: { enabled: true }
+      memory:
+        metrics:
+          system.memory.utilization: { enabled: true }
+      load: {}
+      disk: {}
+      paging: {}
+      processes: {}
+      system: {}
+      filesystem:
+        metrics:
+          system.filesystem.utilization: { enabled: true }
+        exclude_fs_types:
+          match_type: strict
+          fs_types: [autofs, binfmt_misc, bpf, cgroup, cgroup2, configfs, debugfs, devpts, devtmpfs, fusectl,
+                     hugetlbfs, mqueue, nsfs, overlay, proc, pstore, rpc_pipefs, securityfs, squashfs, sysfs,
+                     tmpfs, tracefs]
+        exclude_mount_points:
+          match_type: regexp
+          mount_points: ["/var/lib/docker/.*", "/run/.*", "/snap/.*"]
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 100
+  resource:
+    attributes:
+      - key: host.name
+        value: {{ inventory_hostname | split('.') | first }}
+        action: upsert
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: {{ otel_agent_gateway }}
+    tls:
+      ca_file: /etc/ssl/certs/ca-certificates.crt
+
+service:
+  pipelines:
+    metrics:
+      receivers: [host_metrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp]

@@ -65,6 +65,13 @@
   roles:
     - otel_gateway
 
+# After the gateway, which the agents send to.
+- name: OpenTelemetry agent
+  hosts: docker:&managed
+  become: true
+  roles:
+    - otel_agent
+
 - name: PostgreSQL
   hosts: postgres:&managed
   become: true

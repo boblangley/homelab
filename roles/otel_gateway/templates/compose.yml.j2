@@ -1,7 +1,7 @@
 # Managed by Ansible (homelab repo, role otel_gateway).
 services:
   otel:
-    image: otel/opentelemetry-collector-contrib:{{ otel_gateway_version }}
+    image: otel/opentelemetry-collector-contrib:{{ otel_collector_version }}
     container_name: otel
     restart: unless-stopped
     env_file: .env

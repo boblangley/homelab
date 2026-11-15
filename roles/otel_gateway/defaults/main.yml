@@ -6,7 +6,7 @@
 #
 # TLS: a certificate from OpenBao, kept current by role service_cert; the collector rereads it daily.
 otel_gateway_dir: /opt/docker/otel
-otel_gateway_version: 0.165.0
+# The collector's version is otel_collector_version (group_vars).
 
 # The image's user, which owns the key.
 otel_gateway_uid: 10001
