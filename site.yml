@@ -59,6 +59,12 @@
   roles:
     - clickhouse
 
+- name: OpenTelemetry gateway
+  hosts: otel_gateway:&managed
+  become: true
+  roles:
+    - otel_gateway
+
 - name: PostgreSQL
   hosts: postgres:&managed
   become: true

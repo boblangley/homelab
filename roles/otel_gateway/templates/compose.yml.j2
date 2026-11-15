@@ -1,0 +1,21 @@
+# Managed by Ansible (homelab repo, role otel_gateway).
+services:
+  otel:
+    image: otel/opentelemetry-collector-contrib:{{ otel_gateway_version }}
+    container_name: otel
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/otelcol-contrib:ro
+      - ./tls:/etc/otel/tls:ro
+      # The host bundle, which includes the homelab root (ClickHouse's certificate).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    networks:
+      homelab:
+        aliases:
+          - {{ otel_gateway_name }}
+
+networks:
+  homelab:
+    external: true
