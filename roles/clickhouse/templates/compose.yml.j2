@@ -10,6 +10,8 @@ services:
       CLICKHOUSE_GID: "{{ clickhouse_uid }}"
       # Users come from users.d; don't let the entrypoint make a default user.
       CLICKHOUSE_SKIP_USER_SETUP: "1"
+      # The NATS engine's TLS has no CA setting; OpenSSL's default paths honour this.
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
     ulimits:
       nofile:
         soft: 262144

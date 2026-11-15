@@ -17,3 +17,23 @@ nats_name: nats.internal
 
 # All users share account APP, with JetStream. user name: public nkey.
 nats_users: {}
+
+# Users with a password, for clients that can't use an nkey (Xolotl, ClickHouse's NATS engine). Each one's password and
+# its bcrypt hash are in OpenBao at homelab/nats/<user>, fields password and bcrypt; the server gets only the hash.
+# user name: {publish: [subjects], subscribe: [subjects]}
+nats_password_users: {}
+
+# Largest message the server takes. Xolotl's rows, with request and response bodies, reach several MB.
+nats_max_payload: 8MB
+
+# JetStream streams in account APP: created when missing, and edited when a setting here differs.
+# name: {subjects: [...], max_age_days, max_gib, max_msg_mib, dupe_window_s}. All are file-backed, limits retention,
+# discard old, one replica.
+nats_streams: {}
+
+# Durable pull consumers, created when missing (deliver all, explicit ack, 30s ack wait, no delivery limit).
+# Each: {stream, name}.
+nats_consumers: []
+
+# The CLI image that manages streams and consumers, as user admin (its seed, from OpenBao, is root-only on the host).
+nats_box_version: 0.20.2
