@@ -1,0 +1,9 @@
+---
+# Minisforum EliteMini (Intel Core i9-12950HX, 32 GB), Ubuntu 26.04. Docker worker for Arcane sandboxes.
+# Disk: one 256 GB NVMe for the system and /srv.
+# uid 1000 is `services`, the account its services run as.
+
+accounts_services:
+  - name: services
+    uid: 1000
+    comment: Host services
