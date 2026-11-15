@@ -7,7 +7,10 @@
 set path homelab/b2/clickhouse
 
 read --silent --prompt-str 'OpenBao root token: ' token
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 
@@ -15,7 +18,7 @@ read --silent --prompt-str 'B2 keyID: ' kid
 read --silent --prompt-str 'B2 applicationKey: ' akey
 if test -z "$kid"; or test -z "$akey"
     echo "empty value; nothing stored."
-    set -e VAULT_TOKEN kid akey
+    set -e BAO_TOKEN VAULT_TOKEN kid akey
     exit 1
 end
 
@@ -24,7 +27,7 @@ set code (curl -s -o /dev/null -w '%{http_code}' --aws-sigv4 'aws:amz:us-west-00
     'https://s3.us-west-004.backblazeb2.com/wyrd-clickhouse?list-type=2&max-keys=1')
 if test "$code" != 200
     echo "B2 refused the key (HTTP $code); nothing stored."
-    set -e VAULT_TOKEN kid akey
+    set -e BAO_TOKEN VAULT_TOKEN kid akey
     exit 1
 end
 echo "B2 accepted the key for wyrd-clickhouse."
@@ -37,4 +40,4 @@ if test "$k2" = "$kid"; and test "$a2" = "$akey"
 else
     echo "read-back DIFFERS"
 end
-set -e VAULT_TOKEN kid akey k2 a2
+set -e BAO_TOKEN VAULT_TOKEN kid akey k2 a2

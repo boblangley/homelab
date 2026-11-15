@@ -19,7 +19,10 @@ if not string match --quiet --regex '^[a-z][a-z0-9_-]{0,62}$' -- "$name"
 end
 
 read --silent --prompt-str 'OpenBao root token: ' token
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 function kv
@@ -27,7 +30,7 @@ function kv
 end
 function fail
     echo $argv
-    set -e -g VAULT_TOKEN
+    set -e -g BAO_TOKEN VAULT_TOKEN
     exit 1
 end
 
@@ -91,4 +94,4 @@ if test $bad -eq 0
 else
     echo "something failed or read back DIFFERENT; check homelab/nats/$name and homelab/nats/nsc"
 end
-set -e -g VAULT_TOKEN
+set -e -g BAO_TOKEN VAULT_TOKEN

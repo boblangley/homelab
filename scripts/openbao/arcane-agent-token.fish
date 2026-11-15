@@ -12,20 +12,24 @@ end
 set path homelab/hosts/$host/arcane
 
 read --silent --prompt-str 'OpenBao root token: ' token
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 
 read --silent --prompt-str "Arcane agent token for $host: " t
 if test (string length -- "$t") -lt 16; or string match --quiet --regex '\s' -- "$t"
     echo "that doesn't look like an agent token; nothing stored."
-    set -e VAULT_TOKEN t
+    set -e BAO_TOKEN VAULT_TOKEN t
     exit 1
 end
 bao kv put -namespace=wyrwood -mount=kv $path agent_token=$t >/dev/null
-if test (bao kv get -namespace=wyrwood -mount=kv -field=agent_token $path) = "$t"
+# Quoted: an empty read-back must not reach test's error message, which would print the token.
+if test "$(bao kv get -namespace=wyrwood -mount=kv -field=agent_token $path)" = "$t"
     echo "$host: stored (length "(string length -- $t)")"
 else
     echo "$host: read-back DIFFERS"
 end
-set -e t VAULT_TOKEN
+set -e t BAO_TOKEN VAULT_TOKEN

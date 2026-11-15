@@ -15,7 +15,10 @@
 set users admin workspace xolotl clickhouse trowel
 
 read --silent --prompt-str 'OpenBao root token: ' token
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 function kv
@@ -23,12 +26,25 @@ function kv
 end
 function fail
     echo $argv
-    set -e -g VAULT_TOKEN
+    set -e -g BAO_TOKEN VAULT_TOKEN
     exit 1
 end
 
-if kv get homelab/nats/nsc >/dev/null 2>&1
-    fail "homelab/nats/nsc exists already; nothing changed."
+# 0: stored; 1: not stored; 2: OpenBao refused or couldn't be reached (error printed). A failed read must never be
+# taken for "not stored", which would go on to create and overwrite.
+function kv_exists -a p
+    set err (bao kv get -namespace=wyrwood -mount=kv $p 2>&1 >/dev/null)
+    and return 0
+    string match --quiet '*No value found*' -- "$err"; and return 1
+    printf '%s\n' $err >&2
+    return 2
+end
+kv_exists homelab/nats/nsc
+switch $status
+    case 0
+        fail "homelab/nats/nsc exists already; nothing changed."
+    case 2
+        fail "Can't read homelab/nats/nsc from $BAO_ADDR; nothing changed."
 end
 
 # Runs in the container. Permissions are those of the current users; admin and workspace are unrestricted.
@@ -104,4 +120,4 @@ if test $bad -eq 0
 else
     echo "something failed or read back DIFFERENT; check the lines above"
 end
-set -e VAULT_TOKEN
+set -e BAO_TOKEN VAULT_TOKEN
