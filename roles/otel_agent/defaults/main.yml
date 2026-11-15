@@ -1,0 +1,10 @@
+---
+# Compose project `otel-agent`: an OpenTelemetry collector on each Docker host, sending the host's metrics (receiver host_metrics)
+# to the gateway, otel.internal, over the homelab overlay with TLS.
+#
+# It reads the host through a read-only bind of / at /hostfs. Network traffic isn't collected: on the overlay, the
+# container sees only its own network namespace.
+# The collector's version is otel_collector_version (group_vars).
+otel_agent_dir: /opt/docker/otel-agent
+otel_agent_gateway: otel.internal:4317
+otel_agent_interval: 30s

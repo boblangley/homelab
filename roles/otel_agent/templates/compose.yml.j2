@@ -1,0 +1,19 @@
+# Managed by Ansible (homelab repo, role otel_agent).
+services:
+  otel-agent:
+    image: otel/opentelemetry-collector-contrib:{{ otel_collector_version }}
+    container_name: otel-agent
+    restart: unless-stopped
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/otelcol-contrib:ro
+      # The host's filesystems, read-only; rslave so mounts under / (like /srv) are visible.
+      - /:/hostfs:ro,rslave
+      # The host bundle, which includes the homelab root (the gateway's certificate).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

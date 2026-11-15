@@ -1,0 +1,37 @@
+---
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ otel_agent_dir }}"
+    - "{{ otel_agent_dir }}/config"
+  register: otel_agent_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ otel_agent_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Write the collector config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ otel_agent_dir }}/config/config.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart the OTel agent
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ otel_agent_dir }}"
+    state: present
+  register: otel_agent_start
+  # A preview has only pretended to create the project directory on a first run.
+  when: not (ansible_check_mode and otel_agent_dirs is changed)
