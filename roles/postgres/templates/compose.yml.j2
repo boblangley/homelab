@@ -1,0 +1,39 @@
+# Managed by Ansible (homelab repo, role postgres).
+services:
+  postgres:
+    image: pgvector/pgvector:{{ postgres_version }}
+    container_name: postgres
+    restart: unless-stopped
+    user: "{{ postgres_uid }}:{{ postgres_uid }}"
+    shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgresql/tls/tls.crt
+      - -c
+      - ssl_key_file=/etc/postgresql/tls/tls.key
+      - -c
+      - hba_file=/etc/postgresql/config/pg_hba.conf
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/postgresql/config:ro
+      - ./tls:/etc/postgresql/tls:ro
+      # PostgreSQL 18 images keep the data in /var/lib/postgresql/18/docker; mount the parent.
+      - {{ postgres_data }}:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      homelab:
+        aliases:
+          - {{ postgres_name }}
+
+networks:
+  homelab:
+    external: true

@@ -1,0 +1,7 @@
+---
+# PostgreSQL rereads pg_hba.conf and its TLS files on SIGHUP, without dropping clients.
+- name: Reload PostgreSQL
+  ansible.builtin.command: docker kill --signal HUP postgres
+  changed_when: true
+  # Not in a preview of the first run, when there is no container yet.
+  when: not (ansible_check_mode and postgres_dirs is changed)
