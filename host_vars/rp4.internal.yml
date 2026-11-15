@@ -1,0 +1,9 @@
+---
+# Raspberry Pi 4 (arm64, 4 cores, 8 GB), Debian 13 (trixie). Docker worker for Arcane sandboxes; to run hermes.
+# Disk: a 256 GB SSD for /boot/firmware, the system and /srv. The 16 GB SD card is not mounted.
+# uid 1000 is `services`, the account its services run as.
+
+accounts_services:
+  - name: services
+    uid: 1000
+    comment: Host services
