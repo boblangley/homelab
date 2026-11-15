@@ -1,0 +1,10 @@
+# Managed by Ansible (homelab repo, role clickhouse).
+[Unit]
+Description=Daily ClickHouse backup to B2
+
+[Timer]
+OnCalendar={{ clickhouse_backup_at }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

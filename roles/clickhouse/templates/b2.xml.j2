@@ -1,0 +1,10 @@
+<!-- Managed by Ansible (homelab repo, role clickhouse). The B2 key, from OpenBao. -->
+<clickhouse>
+    <named_collections>
+        <b2>
+            <url>{{ clickhouse_b2_endpoint }}/{{ clickhouse_b2_bucket }}/</url>
+            <access_key_id>{{ clickhouse_b2_key.key_id }}</access_key_id>
+            <secret_access_key>{{ clickhouse_b2_key.application_key }}</secret_access_key>
+        </b2>
+    </named_collections>
+</clickhouse>

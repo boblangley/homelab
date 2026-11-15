@@ -22,5 +22,20 @@
 {% endif %}
         </{{ user.name }}>
 {% endfor %}
+        <!-- For the archive, backup and retention jobs on the host (docker exec). No password, so it only accepts
+             connections from inside the container. -->
+        <maintenance>
+            <no_password/>
+            <networks><ip>127.0.0.1</ip><ip>::1</ip></networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <grants>
+                <query>GRANT SELECT, ALTER TTL ON otel.*</query>
+                <query>GRANT BACKUP ON *.*</query>
+                <query>GRANT CREATE TEMPORARY TABLE ON *.*</query>
+                <query>GRANT READ, WRITE ON S3</query>
+                <query>GRANT NAMED COLLECTION ON b2</query>
+            </grants>
+        </maintenance>
     </users>
 </clickhouse>

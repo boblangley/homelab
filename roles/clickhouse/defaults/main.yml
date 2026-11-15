@@ -23,3 +23,30 @@ clickhouse_memory_ratio: 0.5
 # access_management: true. ClickHouse rejects a user with both; one with access_management has full access and manages
 # users and grants with SQL.
 clickhouse_users: []
+
+# Days each kind of OpenTelemetry data is kept: traces, logs, metrics. 0 or missing: kept forever. The gateway's
+# exporters create the tables with these TTLs; this role changes the TTL of a table that already exists.
+clickhouse_otel_retention: "{{ otel_retention_days | default({}) }}"
+
+# The OTel tables, from the v0.165 exporter's schema: signal: {table: the column its TTL uses}.
+clickhouse_otel_tables:
+  traces:
+    otel_traces: Timestamp
+    otel_traces_trace_id_ts: Start
+  logs:
+    otel_logs: Timestamp
+  metrics:
+    otel_metrics_gauge: TimeUnix
+    otel_metrics_sum: TimeUnix
+    otel_metrics_histogram: TimeUnix
+    otel_metrics_exponential_histogram: TimeUnix
+    otel_metrics_summary: TimeUnix
+
+# B2 (S3 API) for the daily archive and backups. Empty bucket: neither runs. The key is in OpenBao at
+# homelab/b2/clickhouse, fields key_id and application_key.
+clickhouse_b2_bucket: ""
+clickhouse_b2_endpoint: ""
+
+# When they run (systemd OnCalendar, host time).
+clickhouse_archive_at: "*-*-* 01:30"
+clickhouse_backup_at: "*-*-* 02:30"

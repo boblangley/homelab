@@ -1,0 +1,9 @@
+# Managed by Ansible (homelab repo, role clickhouse).
+[Unit]
+Description=ClickHouse archive to B2
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart={{ clickhouse_dir }}/bin/maintenance archive

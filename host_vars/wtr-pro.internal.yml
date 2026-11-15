@@ -30,3 +30,14 @@ clickhouse_users:
     grants:
       - GRANT SELECT ON otel.*
       - GRANT SELECT ON xolotl.*
+
+# Days each kind of OpenTelemetry data is kept in ClickHouse; older data is still in the B2 archive.
+otel_retention_days:
+  traces: 14
+  logs: 30
+  metrics: 30
+
+# ClickHouse's daily archive (Parquet, kept for history) and backups (for recovery). The bucket's lifecycle rules
+# hide backups/incr/ after 90 days and backups/full/ after 98, and delete hidden versions after a day.
+clickhouse_b2_bucket: wyrd-clickhouse
+clickhouse_b2_endpoint: https://s3.us-west-004.backblazeb2.com
