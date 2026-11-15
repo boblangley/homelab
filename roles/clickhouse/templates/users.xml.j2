@@ -1,5 +1,16 @@
 <!-- Managed by Ansible (homelab repo, role clickhouse). Passwords are SHA-256 hashes of values in OpenBao. -->
 <clickhouse>
+    <profiles>
+        <!-- Clients such as Grafana's ClickHouse plugin set max_execution_time on every query, which readonly = 1
+             otherwise refuses. Merged into the built-in profile. -->
+        <readonly>
+            <constraints>
+                <max_execution_time>
+                    <changeable_in_readonly/>
+                </max_execution_time>
+            </constraints>
+        </readonly>
+    </profiles>
     <users>
         <default remove="remove"/>
 {% for user in clickhouse_users %}

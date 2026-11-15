@@ -65,6 +65,12 @@
   roles:
     - otel_gateway
 
+- name: Grafana
+  hosts: grafana:&managed
+  become: true
+  roles:
+    - grafana
+
 - name: ntfy
   hosts: ntfy:&managed
   become: true

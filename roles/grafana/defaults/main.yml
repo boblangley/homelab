@@ -1,0 +1,29 @@
+---
+# Compose project `grafana`: Grafana, behind Caddy as grafana.internal, reading ClickHouse (clickhouse.internal, native
+# protocol over TLS) as ClickHouse user reader. The host publishes no ports. Its own database is SQLite in
+# grafana_data.
+#
+# Sign-in is with Pocket ID (generic OAuth, PKCE). The Pocket ID groups below set each person's role; everyone else the
+# client lets in is a Viewer. The local admin, for when Pocket ID is down, is at /login?disableAutoLogin.
+#
+# Secrets, read from OpenBao and written by Ansible to a directory only Grafana's uid can read, which grafana.ini and
+# the provisioning files name with $__file{}:
+#   homelab/grafana: admin_password, secret_key (encrypts data source secrets in Grafana's database; never change it),
+#                    oidc_client_id, oidc_client_secret
+#   homelab/clickhouse/reader: password
+grafana_dir: /opt/docker/grafana
+grafana_data: /srv/grafana
+grafana_version: 13.3.1
+grafana_clickhouse_plugin_version: 4.23.5
+grafana_secrets_path: homelab/grafana
+
+# The server runs as this uid, which owns its data and secrets.
+grafana_uid: 1000
+
+grafana_name: grafana.internal
+grafana_oidc_issuer: https://pocketid.internal
+grafana_admin_group: grafana_admins
+grafana_editor_group: grafana_editors
+
+grafana_clickhouse_host: clickhouse.internal
+grafana_clickhouse_user: reader

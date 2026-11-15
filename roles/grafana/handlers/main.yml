@@ -1,0 +1,11 @@
+---
+# Grafana reads grafana.ini, its secrets and the data source only at start. Not when the start step just created or
+# recreated the container, nor in a preview of the first run.
+- name: Restart Grafana
+  community.docker.docker_compose_v2:
+    project_src: "{{ grafana_dir }}"
+    state: restarted
+    wait: true
+  when:
+    - grafana_start is not changed
+    - not (ansible_check_mode and grafana_dirs is changed)

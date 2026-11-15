@@ -1,0 +1,35 @@
+# Managed by Ansible (homelab repo, role grafana).
+services:
+  grafana:
+    image: grafana/grafana:{{ grafana_version }}
+    container_name: grafana
+    restart: unless-stopped
+    user: "{{ grafana_uid }}:{{ grafana_uid }}"
+    environment:
+      GF_PATHS_CONFIG: /etc/grafana/config/grafana.ini
+    labels:
+      caddy: {{ grafana_name }}
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 3000{{ '}}' }}"
+      caddy.import: openbao_tls
+    volumes:
+      # Directories, not single files: Ansible replaces a file, and a file mount would keep the old one.
+      - ./config:/etc/grafana/config:ro
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/etc/grafana/dashboards:ro
+      - ./secrets:/run/secrets/grafana:ro
+      # The host bundle, which includes the homelab root (Pocket ID, and ClickHouse for the plugin).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      # Its database, plugins and sessions.
+      - {{ grafana_data }}:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

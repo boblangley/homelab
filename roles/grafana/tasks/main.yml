@@ -1,0 +1,136 @@
+---
+- name: Read Grafana's secrets from OpenBao
+  ansible.builtin.set_fact:
+    grafana_secrets: >-
+      {{ lookup('community.hashi_vault.vault_kv2_get', grafana_secrets_path, engine_mount_point='kv').secret
+      | combine({'clickhouse_password': lookup('community.hashi_vault.vault_kv2_get',
+      'homelab/clickhouse/' ~ grafana_clickhouse_user, engine_mount_point='kv').secret.password}) }}
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ grafana_dir }}", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/config", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/provisioning", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/provisioning/datasources", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/provisioning/dashboards", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/dashboards", owner: root, mode: "0755" }
+    - { path: "{{ grafana_dir }}/secrets", owner: "{{ grafana_uid }}", mode: "0500" }
+    - { path: "{{ grafana_data }}", owner: "{{ grafana_uid }}", mode: "0750" }
+  register: grafana_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ grafana_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# One file each, readable only by Grafana's uid. Never shown in a diff.
+- name: Write the secrets
+  ansible.builtin.copy:
+    content: "{{ grafana_secrets[item] }}\n"
+    dest: "{{ grafana_dir }}/secrets/{{ item }}"
+    owner: "{{ grafana_uid }}"
+    group: "{{ grafana_uid }}"
+    mode: "0400"
+  loop:
+    - admin_password
+    - secret_key
+    - oidc_client_id
+    - oidc_client_secret
+    - clickhouse_password
+  no_log: true
+  diff: false
+  notify: Restart Grafana
+
+# No secrets or identifiers in these: they name the files above.
+- name: Write the config
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_dir }}/config/grafana.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Grafana
+
+- name: Write the provisioning
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ grafana_dir }}/provisioning/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - datasources/clickhouse.yml
+    - dashboards/homelab.yml
+  notify: Restart Grafana
+
+# Dashboards: the JSON files under files/dashboards, a subdirectory per Grafana folder. Copied, not templated: their
+# {{ }} are Grafana's. Grafana rereads the directory every minute, so none of this needs a restart.
+- name: List the dashboards
+  ansible.builtin.set_fact:
+    grafana_dashboards: >-
+      {{ query('community.general.filetree', 'dashboards') | selectattr('state', 'eq', 'file')
+      | selectattr('path', 'search', '\.json$') | list }}
+
+- name: Note the dashboard folders
+  ansible.builtin.set_fact:
+    grafana_dashboard_folders: >-
+      {{ grafana_dashboards | map(attribute='path') | map('dirname') | select | unique | list }}
+
+- name: Create the dashboard folders
+  ansible.builtin.file:
+    path: "{{ grafana_dir }}/dashboards/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ grafana_dashboard_folders }}"
+
+- name: Copy the dashboards
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ grafana_dir }}/dashboards/{{ item.path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+# A dashboard removed from the repo is removed from Grafana (the provider doesn't disable deletion).
+- name: Find the dashboards on the host
+  ansible.builtin.find:
+    paths: "{{ grafana_dir }}/dashboards"
+    recurse: true
+    file_type: any
+  register: grafana_dashboards_found
+
+- name: Remove dashboards no longer in the repo
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ grafana_dashboards_found.files | map(attribute='path')
+    | map('regex_replace', '^' ~ (grafana_dir ~ '/dashboards/') | regex_escape, '')
+    | reject('in', grafana_dashboards | map(attribute='path') | list + grafana_dashboard_folders)
+    | map('regex_replace', '^', grafana_dir ~ '/dashboards/') | list }}
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ grafana_dir }}"
+    state: present
+    wait: true
+  register: grafana_start
+  # A preview has only pretended to create the project directory on a first run.
+  when: not (ansible_check_mode and grafana_dirs is changed)

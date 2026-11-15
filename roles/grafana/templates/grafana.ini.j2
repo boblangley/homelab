@@ -1,0 +1,49 @@
+; Managed by Ansible (homelab repo, role grafana). Secrets are read from files with $__file{}.
+
+[server]
+domain = {{ grafana_name }}
+root_url = https://{{ grafana_name }}/
+
+[security]
+admin_user = admin
+admin_password = $__file{/run/secrets/grafana/admin_password}
+secret_key = $__file{/run/secrets/grafana/secret_key}
+cookie_secure = true
+disable_gravatar = true
+
+[users]
+allow_sign_up = false
+
+[auth]
+; Pocket ID's session outlives Grafana's; signing out of Grafana alone would sign straight back in.
+signout_redirect_url = {{ grafana_oidc_issuer }}/api/oidc/end-session
+
+[auth.generic_oauth]
+enabled = true
+name = Pocket ID
+auto_login = true
+allow_sign_up = true
+client_id = $__file{/run/secrets/grafana/oidc_client_id}
+client_secret = $__file{/run/secrets/grafana/oidc_client_secret}
+scopes = openid email profile groups
+auth_url = {{ grafana_oidc_issuer }}/authorize
+token_url = {{ grafana_oidc_issuer }}/api/oidc/token
+; No API URL: the claims come from the ID token.
+use_pkce = true
+login_attribute_path = preferred_username
+email_attribute_path = email
+name_attribute_path = name
+groups_attribute_path = groups
+role_attribute_path = contains(groups[*], '{{ grafana_admin_group }}') && 'Admin' || contains(groups[*], '{{ grafana_editor_group }}') && 'Editor' || 'Viewer'
+
+[plugins]
+; Installed before start, so the provisioned data source finds it. Pinned: no automatic updates.
+preinstall_sync = grafana-clickhouse-datasource@{{ grafana_clickhouse_plugin_version }}
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false
+check_for_plugin_updates = false
+
+[news]
+news_feed_enabled = false
