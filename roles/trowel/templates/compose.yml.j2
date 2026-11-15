@@ -5,6 +5,8 @@ services:
     container_name: {{ trowel_container }}
     restart: unless-stopped
     command: ["-config", "/config/config.yml"]
+    # The image's user (trowel), numeric: Wyrwood checks socket access from inspect output, which can't resolve a name.
+    user: "100:101"
     # The Wyrwood binding's access group, for its sockets.
     group_add:
       - "{{ trowel_socket_gid }}"
