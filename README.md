@@ -24,18 +24,27 @@ client IDs. Those live in OpenBao, and roles read them at run time.
 - `host_vars/<host>.yml`: what is particular to each host.
 - `roles/`: one role per concern. `base` applies to every host.
 - `site.yml`: the playbook.
+- `docs/external.md`: what the roles depend on that is configured by hand outside Ansible (OpenBao, Wyrwood, NATS
+  users, Cloudflare, B2, GitHub, Pocket ID).
+- `scripts/openbao/`: scripts that put secrets into OpenBao. Each asks for the token and prints only lengths and
+  results.
 
 ## Run
 
-Ansible runs from a workstation for now. It connects as `agent`, which has passwordless sudo on each host.
+The Apply workflow runs the playbook on every merge to `main`, from the self-hosted runner on docker-infra. It
+connects as `ansible` and reads OpenBao through the runner's Wyrwood socket. Run it by hand with
+`preview` for a check-mode run with diffs.
+
+From a workstation, it connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with the
+operator's own token: `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
 
 ```sh
 python3 -m venv ~/.local/share/venvs/ansible
 ~/.local/share/venvs/ansible/bin/pip install ansible-core
 ~/.local/share/venvs/ansible/bin/ansible-galaxy collection install -r requirements.yml
 
-~/.local/share/venvs/ansible/bin/ansible-playbook site.yml --check --diff   # preview
-~/.local/share/venvs/ansible/bin/ansible-playbook site.yml
+~/.local/share/venvs/ansible/bin/ansible-playbook site.yml --check --diff --skip-tags runner   # preview
+~/.local/share/venvs/ansible/bin/ansible-playbook site.yml --skip-tags runner
 ```
 
 ## Adding a host
