@@ -18,7 +18,10 @@ if not string match --quiet --regex '^[a-z][a-z0-9_-]{0,31}$' -- "$admin"
 end
 
 read --silent --prompt-str 'OpenBao root token: ' token
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 function kv
@@ -26,12 +29,25 @@ function kv
 end
 function fail
     echo $argv
-    set -e -g VAULT_TOKEN
+    set -e -g BAO_TOKEN VAULT_TOKEN
     exit 1
 end
 
-if kv get homelab/ntfy >/dev/null 2>&1
-    fail "homelab/ntfy exists already; nothing changed."
+# 0: stored; 1: not stored; 2: OpenBao refused or couldn't be reached (error printed). A failed read must never be
+# taken for "not stored", which would go on to create and overwrite.
+function kv_exists -a p
+    set err (bao kv get -namespace=wyrwood -mount=kv $p 2>&1 >/dev/null)
+    and return 0
+    string match --quiet '*No value found*' -- "$err"; and return 1
+    printf '%s\n' $err >&2
+    return 2
+end
+kv_exists homelab/ntfy
+switch $status
+    case 0
+        fail "homelab/ntfy exists already; nothing changed."
+    case 2
+        fail "Can't read homelab/ntfy from $BAO_ADDR; nothing changed."
 end
 
 function newpw
@@ -68,11 +84,12 @@ kv put homelab/ntfy/homelab token=$homelab_token >/dev/null
 kv patch workspace/ntfy url=https://ntfy.wyrd.team token=$workspaces_token >/dev/null
 
 set bad 0
-test (kv get -field=auth_users homelab/ntfy) = "$users"; or set bad 1
-test (kv get -field=auth_tokens homelab/ntfy) = "$tokens"; or set bad 1
-test (kv get -field=password homelab/ntfy/$admin) = "$admin_pw"; or set bad 1
-test (kv get -field=token homelab/ntfy/homelab) = "$homelab_token"; or set bad 1
-test (kv get -field=token workspace/ntfy) = "$workspaces_token"; or set bad 1
+# Quoted: an empty read-back must not reach test's error message, which would print the value.
+test "$(kv get -field=auth_users homelab/ntfy)" = "$users"; or set bad 1
+test "$(kv get -field=auth_tokens homelab/ntfy)" = "$tokens"; or set bad 1
+test "$(kv get -field=password homelab/ntfy/$admin)" = "$admin_pw"; or set bad 1
+test "$(kv get -field=token homelab/ntfy/homelab)" = "$homelab_token"; or set bad 1
+test "$(kv get -field=token workspace/ntfy)" = "$workspaces_token"; or set bad 1
 kv get -field=topic workspace/ntfy >/dev/null 2>&1; or set bad 1
 if test $bad -eq 0
     echo "stored: homelab/ntfy (3 users, 2 tokens), homelab/ntfy/$admin (password length 32), homelab/ntfy/homelab,"
@@ -81,4 +98,4 @@ else
     echo "read-back DIFFERS somewhere"
 end
 set -e admin_pw admin_hash homelab_hash workspaces_hash homelab_token workspaces_token users tokens
-set -e VAULT_TOKEN
+set -e BAO_TOKEN VAULT_TOKEN

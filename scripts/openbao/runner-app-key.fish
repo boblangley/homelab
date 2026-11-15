@@ -24,14 +24,17 @@ if not string match --quiet --regex '^[0-9]+$' -- $app_id
 end
 read --silent --prompt-str 'OpenBao root token: ' token
 
-set -x VAULT_ADDR https://openbao.internal:8200
+# BAO_* as well: bao prefers them, and a devcontainer may set BAO_ADDR to its Wyrwood socket.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN $token
+set -x VAULT_ADDR $BAO_ADDR
 set -x VAULT_TOKEN $token
 set -e token
 
 set der (openssl pkcs8 -topk8 -nocrypt -in $pem -outform DER | base64 -w0)
 bao transit import -namespace=wyrwood transit/keys/$key $der type=rsa-2048
 or begin
-    set -e VAULT_TOKEN der
+    set -e BAO_TOKEN VAULT_TOKEN der
     echo "Import failed; the key file is untouched."
     exit 1
 end
@@ -45,14 +48,14 @@ echo "Transit: $transit_hash"
 echo "File:    $file_hash"
 
 if test "$transit_hash" != "$file_hash"
-    set -e VAULT_TOKEN
+    set -e BAO_TOKEN VAULT_TOKEN
     echo "MISMATCH: kept the key file. Don't store the App details yet."
     exit 1
 end
 echo "Match."
 
 bao kv put -namespace=wyrwood -mount=kv homelab/runner app_id=$app_id app_login=$app_login
-set -e VAULT_TOKEN
+set -e BAO_TOKEN VAULT_TOKEN
 
 read --prompt-str "Delete $pem now? [y/N] " answer
 if test "$answer" = y -o "$answer" = Y
