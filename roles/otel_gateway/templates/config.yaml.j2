@@ -1,0 +1,48 @@
+# Managed by Ansible (homelab repo, role otel_gateway).
+extensions:
+  health_check:
+    endpoint: 127.0.0.1:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls: &tls
+          cert_file: /etc/otel/tls/tls.crt
+          key_file: /etc/otel/tls/tls.key
+          reload_interval: 24h
+      http:
+        endpoint: 0.0.0.0:4318
+        tls: *tls
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  batch: {}
+
+exporters:
+{% for signal in ['traces', 'logs', 'metrics'] %}
+  clickhouse/{{ signal }}:
+    endpoint: tcp://{{ otel_gateway_clickhouse }}?secure=true
+    username: otel
+    password: ${env:CLICKHOUSE_PASSWORD}
+    database: otel
+    tls:
+      ca_file: /etc/ssl/certs/ca-certificates.crt
+    create_schema: true
+    # Days kept: {{ otel_retention_days[signal] | default(0) }} (0: forever).
+    ttl: {{ (otel_retention_days[signal] | default(0) | int) * 24 }}h
+{% endfor %}
+
+service:
+  extensions: [health_check]
+  pipelines:
+{% for signal in ['traces', 'logs', 'metrics'] %}
+    {{ signal }}:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse/{{ signal }}]
+{% endfor %}

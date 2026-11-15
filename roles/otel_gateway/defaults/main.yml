@@ -1,0 +1,15 @@
+---
+# Compose project `otel`: the OpenTelemetry gateway collector. Collectors and apps send OTLP to it on the homelab
+# overlay as otel.internal (gRPC 4317, HTTP 4318, both TLS); the host publishes no ports. It writes to ClickHouse as
+# user otel, one exporter per signal, and the exporters create the tables in database otel with the TTLs from
+# otel_retention_days (role clickhouse changes them on tables that already exist).
+#
+# TLS: a certificate from OpenBao, kept current by role service_cert; the collector rereads it daily.
+otel_gateway_dir: /opt/docker/otel
+otel_gateway_version: 0.165.0
+
+# The image's user, which owns the key.
+otel_gateway_uid: 10001
+
+otel_gateway_name: otel.internal
+otel_gateway_clickhouse: clickhouse.internal:9440

@@ -1,0 +1,10 @@
+---
+# The collector reads its config only at start. Not when the start step just created or recreated the container, nor
+# in a preview of the first run.
+- name: Restart the OTel gateway
+  community.docker.docker_compose_v2:
+    project_src: "{{ otel_gateway_dir }}"
+    state: restarted
+  when:
+    - otel_gateway_start is not changed
+    - not (ansible_check_mode and otel_gateway_dirs is changed)
