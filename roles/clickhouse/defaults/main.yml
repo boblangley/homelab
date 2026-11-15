@@ -52,6 +52,6 @@ clickhouse_archive_at: "*-*-* 01:30"
 clickhouse_backup_at: "*-*-* 02:30"
 
 # Xolotl's tables (database xolotl), loaded from NATS stream XOLOTL through consumer clickhouse, as NATS user
-# clickhouse (password in OpenBao at homelab/nats/clickhouse). Off when false.
+# clickhouse (its .creds in OpenBao at homelab/nats/clickhouse). Off when false.
 clickhouse_xolotl: false
 clickhouse_nats_url: nats.internal:4222

@@ -20,6 +20,7 @@ services:
       - ./config.d:/etc/clickhouse-server/config.d:ro
       - ./users.d:/etc/clickhouse-server/users.d:ro
       - ./tls:/etc/clickhouse-server/tls:ro
+      - ./nats:/etc/clickhouse-server/nats:ro
       # The host bundle, which includes the homelab root.
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - {{ clickhouse_data }}:/var/lib/clickhouse

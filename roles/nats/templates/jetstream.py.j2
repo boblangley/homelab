@@ -10,10 +10,10 @@ CHECK = "--check" in sys.argv[1:]
 
 def nats(*args):
     cmd = ["docker", "run", "--rm", "--network", "homelab",
-           "-v", "{{ nats_dir }}/admin.nk:/admin.nk:ro",
+           "-v", "{{ nats_dir }}/admin.creds:/admin.creds:ro",
            "-v", "/etc/ssl/certs/ca-certificates.crt:/ca.crt:ro",
            "natsio/nats-box:{{ nats_box_version }}",
-           "nats", "--server", "tls://{{ nats_name }}:4222", "--tlsca", "/ca.crt", "--nkey", "/admin.nk", *args]
+           "nats", "--server", "tls://{{ nats_name }}:4222", "--tlsca", "/ca.crt", "--creds", "/admin.creds", *args]
     return subprocess.run(cmd, capture_output=True, text=True)
 
 def names(kind, *parent):

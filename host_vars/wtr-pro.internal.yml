@@ -8,25 +8,9 @@ accounts_services:
     uid: 1000
     comment: Host services
 
-# NATS users (role nats): public nkeys. Each seed is in OpenBao at homelab/nats/<user>.
-nats_users:
-  admin: UAZPSPKLYBOWM7YTOIHAJRPDANJ3SXSOD2ECVJM7QTUSHYNU6DFQR4OF
-  trowel: UC4YVZMN4A6PMHIRCDAXURBY6GBSAULJ4DY2RBCVIGX242QKIDAVGUNE
-  workspace: UBF3SZ4RN2C7T3XQY5A7ZRX24CS4HX3W3NDS2TDOUQOM7FVF27UT7ISR
-
-# NATS users with a password (role nats), for clients that can't use an nkey. From Xolotl's NATS export guide: only
-# xolotl publishes exchanges, and only clickhouse consumes them.
-nats_password_users:
-  xolotl:
-    publish: ["xolotl.exchanges.>", "$JS.API.STREAM.INFO.XOLOTL"]
-    subscribe: ["_INBOX.>"]
-  clickhouse:
-    publish:
-      - "$JS.API.CONSUMER.MSG.NEXT.XOLOTL.clickhouse"
-      - "$JS.API.CONSUMER.INFO.XOLOTL.clickhouse"
-      - "$JS.API.STREAM.INFO.XOLOTL"
-      - "$JS.ACK.XOLOTL.clickhouse.>"
-    subscribe: ["_INBOX.>"]
+# NATS users (role nats) are user JWTs, each with its permissions, issued outside Ansible: admin, workspace,
+# xolotl (publishes xolotl.exchanges.>), clickhouse (consumes XOLOTL), trowel (publishes github.>). Their .creds are in
+# OpenBao at homelab/nats/<user>.
 
 # Xolotl's exchanges, with request and response bodies (50-150 KB a row), wait here until ClickHouse loads them.
 nats_streams:

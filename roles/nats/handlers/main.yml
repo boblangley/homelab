@@ -3,3 +3,12 @@
 - name: Reload NATS
   ansible.builtin.command: docker kill --signal HUP nats
   changed_when: true
+
+# A new operator or system account. Registered after the reload, so it runs last, on the new config.
+- name: Restart NATS
+  community.docker.docker_compose_v2:
+    project_src: "{{ nats_dir }}"
+    state: restarted
+  when:
+    - nats_start is not changed
+    - not (ansible_check_mode and nats_dirs is changed)

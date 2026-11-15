@@ -1,7 +1,6 @@
-<!-- Managed by Ansible (homelab repo, role clickhouse). The NATS engine's login, from OpenBao. -->
+<!-- Managed by Ansible (homelab repo, role clickhouse). The NATS engine's login, a .creds file from OpenBao. -->
 <clickhouse>
     <nats>
-        <user>clickhouse</user>
-        <password>{{ clickhouse_nats_password }}</password>
+        <credential_file>/etc/clickhouse-server/nats/clickhouse.creds</credential_file>
     </nats>
 </clickhouse>
