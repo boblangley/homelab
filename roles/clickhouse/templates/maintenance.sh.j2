@@ -72,10 +72,10 @@ backup() {
   age=7
   [ -n "$latest" ] && age=$(( ($(date -u -d "$today" +%s) - $(date -u -d "$latest" +%s)) / 86400 ))
   if [ "$age" -ge 7 ]; then
-    q "BACKUP $what TO S3(b2, 'backups/full/$today')" >/dev/null
+    q "BACKUP $what TO Disk('b2', 'backups/full/$today')" >/dev/null
     echo "full backup $today"
   else
-    q "BACKUP $what TO S3(b2, 'backups/incr/$today') SETTINGS base_backup = S3(b2, 'backups/full/$latest')" >/dev/null
+    q "BACKUP $what TO Disk('b2', 'backups/incr/$today') SETTINGS base_backup = Disk('b2', 'backups/full/$latest')" >/dev/null
     echo "incremental backup $today (base $latest)"
   fi
 }
