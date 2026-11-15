@@ -1,0 +1,107 @@
+-- Managed by Ansible (homelab repo, role clickhouse).
+-- From Xolotl's NATS export guide (docs/user/nats-export.md, 0.6.1). Each statement is skipped when its object exists;
+-- changing a table follows the guide's "Changing the table".
+CREATE DATABASE IF NOT EXISTS xolotl;
+
+CREATE TABLE IF NOT EXISTS xolotl.exchanges (
+    id UUID,
+    started_at DateTime64(3, 'UTC'),
+    finished_at DateTime64(3, 'UTC'),
+    trace_id String,
+    client_id LowCardinality(String),
+    session_key String,
+    session_source LowCardinality(String),
+    provider LowCardinality(String),
+    account_id LowCardinality(String),
+    account_kind LowCardinality(String),
+    model LowCardinality(String),
+    upstream_model LowCardinality(String),
+    client_endpoint LowCardinality(String),
+    endpoint LowCardinality(String),
+    status UInt16,
+    latency_ms UInt64,
+    streamed Bool,
+    input_tokens Nullable(Int64),
+    output_tokens Nullable(Int64),
+    cached_tokens Nullable(Int64),
+    cache_write_tokens Nullable(Int64),
+    context_tokens Nullable(Int64),
+    context_window Nullable(Int64),
+    cost Nullable(Float64),
+    tool_calls Array(LowCardinality(String)),
+    stop_reason LowCardinality(String),
+    error String,
+    request String CODEC(ZSTD(3)),
+    request_truncated Bool,
+    response String CODEC(ZSTD(3)),
+    response_truncated Bool,
+    output String CODEC(ZSTD(3)),
+    output_text String CODEC(ZSTD(3))
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(started_at)
+ORDER BY (client_id, session_key, started_at, id);
+
+CREATE TABLE IF NOT EXISTS xolotl.exchanges_queue (
+    id UUID,
+    started_at DateTime64(3, 'UTC'),
+    finished_at DateTime64(3, 'UTC'),
+    trace_id String,
+    client_id String,
+    session_key String,
+    session_source String,
+    provider String,
+    account_id String,
+    account_kind String,
+    model String,
+    upstream_model String,
+    client_endpoint String,
+    endpoint String,
+    status UInt16,
+    latency_ms UInt64,
+    streamed Bool,
+    input_tokens Nullable(Int64),
+    output_tokens Nullable(Int64),
+    cached_tokens Nullable(Int64),
+    cache_write_tokens Nullable(Int64),
+    context_tokens Nullable(Int64),
+    context_window Nullable(Int64),
+    cost Nullable(Float64),
+    tool_calls Array(String),
+    stop_reason String,
+    error String,
+    request String,
+    request_truncated Bool,
+    response String,
+    response_truncated Bool,
+    output String,
+    output_text String
+)
+ENGINE = NATS SETTINGS
+    nats_url = '{{ clickhouse_nats_url }}',
+    -- TLS, checked against SSL_CERT_FILE (the host bundle). The login is in config.d/nats.xml.
+    nats_secure = 1,
+    nats_subjects = 'xolotl.exchanges.>',
+    nats_stream = 'XOLOTL',
+    nats_consumer_name = 'clickhouse',
+    nats_format = 'JSONEachRow',
+    nats_max_block_size = 1000,
+    nats_flush_interval_ms = 1000,
+    nats_handle_error_mode = 'stream';
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS xolotl.exchanges_mv TO xolotl.exchanges AS
+SELECT * FROM xolotl.exchanges_queue WHERE _error IS NULL;
+
+-- Messages that don't parse are acknowledged and kept here, instead of being
+-- delivered again forever.
+CREATE TABLE IF NOT EXISTS xolotl.exchanges_errors (
+    at DateTime DEFAULT now(),
+    subject String,
+    raw String,
+    error String
+)
+ENGINE = MergeTree ORDER BY at TTL at + INTERVAL 30 DAY;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS xolotl.exchanges_errors_mv TO xolotl.exchanges_errors AS
+SELECT _subject AS subject, _raw_message AS raw, _error AS error
+FROM xolotl.exchanges_queue WHERE _error IS NOT NULL;

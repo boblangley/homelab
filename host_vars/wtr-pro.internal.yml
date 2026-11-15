@@ -11,10 +11,32 @@ accounts_services:
 # NATS users (role nats): public nkeys. Each seed is in OpenBao at homelab/nats/<user>.
 nats_users:
   admin: UAZPSPKLYBOWM7YTOIHAJRPDANJ3SXSOD2ECVJM7QTUSHYNU6DFQR4OF
-  clickhousedb: UDHVLKIPCUQWDHCY7FD6DMVTGIXSAR6DCFC74FAJZKH5V4XZK6DGECQI
   trowel: UC4YVZMN4A6PMHIRCDAXURBY6GBSAULJ4DY2RBCVIGX242QKIDAVGUNE
   workspace: UBF3SZ4RN2C7T3XQY5A7ZRX24CS4HX3W3NDS2TDOUQOM7FVF27UT7ISR
-  xolotl: UC7TVD54RBDAMNEFIE676CJFKP2CNSM7XHQAQJLN52OSIZPSYMHQ6DEY
+
+# NATS users with a password (role nats), for clients that can't use an nkey. From Xolotl's NATS export guide: only
+# xolotl publishes exchanges, and only clickhouse consumes them.
+nats_password_users:
+  xolotl:
+    publish: ["xolotl.exchanges.>", "$JS.API.STREAM.INFO.XOLOTL"]
+    subscribe: ["_INBOX.>"]
+  clickhouse:
+    publish:
+      - "$JS.API.CONSUMER.MSG.NEXT.XOLOTL.clickhouse"
+      - "$JS.API.CONSUMER.INFO.XOLOTL.clickhouse"
+      - "$JS.API.STREAM.INFO.XOLOTL"
+      - "$JS.ACK.XOLOTL.clickhouse.>"
+    subscribe: ["_INBOX.>"]
+
+# Xolotl's exchanges, with request and response bodies (50-150 KB a row), wait here until ClickHouse loads them.
+nats_streams:
+  XOLOTL:
+    subjects: ["xolotl.exchanges.>"]
+    max_age_days: 7
+    max_gib: 50
+    max_msg_mib: 8
+nats_consumers:
+  - { stream: XOLOTL, name: clickhouse }
 
 # ClickHouse users (role clickhouse). Each password is in OpenBao at homelab/clickhouse/<user>, field password.
 # admin manages schemas, and the Xolotl tables fed from NATS; otel is the OpenTelemetry gateway's writer; reader is
@@ -41,3 +63,6 @@ otel_retention_days:
 # hide backups/incr/ after 90 days and backups/full/ after 98, and delete hidden versions after a day.
 clickhouse_b2_bucket: wyrd-clickhouse
 clickhouse_b2_endpoint: https://s3.us-west-004.backblazeb2.com
+
+# Xolotl's tables, loaded from NATS stream XOLOTL. No TTL: kept until decided otherwise.
+clickhouse_xolotl: true

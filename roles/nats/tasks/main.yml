@@ -1,4 +1,22 @@
 ---
+- name: Read the password users' bcrypt hashes from OpenBao
+  ansible.builtin.set_fact:
+    nats_bcrypt: >-
+      {{ nats_bcrypt | default({}) | combine({item: lookup('community.hashi_vault.vault_kv2_get',
+      'homelab/nats/' ~ item, engine_mount_point='kv').secret.bcrypt}) }}
+  loop: "{{ nats_password_users.keys() | list }}"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
+- name: Read user admin's seed from OpenBao
+  ansible.builtin.set_fact:
+    nats_admin_seed: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/admin', engine_mount_point='kv').secret.seed }}"
+  when: nats_streams | length > 0 or nats_consumers | length > 0
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Create the project directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -21,13 +39,16 @@
     group: root
     mode: "0644"
 
+# Has the password users' bcrypt hashes: readable only by the server's uid. Never shown in a diff.
 - name: Write the server config
   ansible.builtin.template:
     src: nats.conf.j2
     dest: "{{ nats_dir }}/config/nats.conf"
-    owner: root
-    group: root
-    mode: "0644"
+    owner: "{{ nats_uid }}"
+    group: "{{ nats_uid }}"
+    mode: "0400"
+  no_log: true
+  diff: false
   notify: Reload NATS
 
 - name: Remove the config from its old place
@@ -56,3 +77,39 @@
     state: present
   # A preview has only pretended to create the project directory on a first run.
   when: not (ansible_check_mode and nats_dirs is changed)
+
+# For the stream and consumer script, which runs the NATS CLI as admin.
+- name: Write user admin's seed
+  ansible.builtin.copy:
+    content: "{{ nats_admin_seed }}\n"
+    dest: "{{ nats_dir }}/admin.nk"
+    owner: root
+    group: root
+    mode: "0400"
+  when: nats_admin_seed is defined
+  no_log: true
+  diff: false
+
+- name: Write the stream and consumer script
+  ansible.builtin.template:
+    src: jetstream.py.j2
+    dest: "{{ nats_dir }}/jetstream"
+    owner: root
+    group: root
+    mode: "0755"
+  register: nats_jetstream_script
+
+# Streams need the server's new config, such as a larger max_payload.
+- name: Reload NATS now if its config changed
+  ansible.builtin.meta: flush_handlers
+
+# A preview runs it with --check, which only reports.
+- name: Create and update the streams and consumers
+  ansible.builtin.command: "{{ nats_dir }}/jetstream{{ ' --check' if ansible_check_mode else '' }}"
+  register: nats_jetstream
+  changed_when: nats_jetstream.stdout | length > 0
+  check_mode: false
+  when:
+    - nats_streams | length > 0 or nats_consumers | length > 0
+    # A preview can't run a script it has only pretended to write.
+    - not (ansible_check_mode and (nats_dirs is changed or nats_jetstream_script is changed))
