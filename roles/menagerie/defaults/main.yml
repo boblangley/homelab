@@ -1,0 +1,15 @@
+---
+# Compose project `menagerie`: Menagerie, which creates and runs the devcontainer workspaces. It runs on the
+# devcontainer host, outside any sandbox, behind Caddy as menagerie.internal.
+#
+# Wyrwood binds its sockets to compose project and service menagerie/menagerie, so neither name may change. Its state
+# is in volume menagerie_menagerie-data.
+#
+# Installation identifiers, read from OpenBao at homelab/menagerie: oidc_client_id, github_app_id.
+menagerie_dir: /opt/docker/menagerie
+menagerie_version: 0.4.2
+# The image Menagerie runs a workspace's jobs in.
+menagerie_runner_version: 0.4.0
+menagerie_ids_path: homelab/menagerie
+
+menagerie_name: menagerie.internal

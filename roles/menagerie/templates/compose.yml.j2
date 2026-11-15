@@ -1,0 +1,47 @@
+# Managed by Ansible (homelab repo, role menagerie).
+# Wyrwood binds its sockets to this project and service name (menagerie/menagerie).
+name: menagerie
+
+services:
+  menagerie:
+    image: ghcr.io/wyrd-company/menagerie:{{ menagerie_version }}
+    container_name: menagerie
+    restart: unless-stopped
+    environment:
+      # The Wyrwood policy's contract requires these two.
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+    labels:
+      caddy: {{ menagerie_name }}
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 8080{{ '}}' }}"
+      caddy.import: openbao_tls
+    # Long-form binds, so Docker never creates a missing source.
+    volumes:
+      - type: bind
+        source: /workspaces
+        target: /workspaces
+        bind: { create_host_path: false }
+      - type: bind
+        source: /var/lib/menagerie-sockets
+        target: /var/lib/menagerie-sockets
+        bind: { create_host_path: false }
+      - type: bind
+        source: /run/wyrwood/containers/menagerie
+        target: /run/wyrwood
+        bind: { create_host_path: false }
+      - /var/run/docker.sock:/var/run/docker.sock
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/menagerie:ro
+      # The host bundle, which includes the homelab root (Pocket ID, Xolotl, the Wyrwood controller).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      - menagerie-data:/var/lib/menagerie
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
+
+volumes:
+  menagerie-data:

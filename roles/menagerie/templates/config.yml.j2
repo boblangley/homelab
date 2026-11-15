@@ -1,0 +1,52 @@
+# Managed by Ansible (homelab repo, role menagerie).
+workspace-root: /workspaces
+# Each workspace is force-pushed to its own orphan branch
+workspace-repository: https://github.com/wyrd-company/workspaces.git
+wyrwood-directory: /run/wyrwood
+runner-image: ghcr.io/wyrd-company/menagerie:{{ menagerie_runner_version }}
+# Definitions get no variables from Menagerie's environment
+local-env: []
+
+oidc:
+  issuer: https://pocketid.internal
+  client-id: {{ menagerie_ids.oidc_client_id }}
+  redirect-url: https://{{ menagerie_name }}/auth/callback
+
+# wyrd-automation[bot], signed through Wyrwood's vault.sock
+github-app:
+  app-id: {{ menagerie_ids.github_app_id }}
+  transit-key: gh-app-wyrd-automation
+
+templates:
+  - id: workspace
+    name: Workspace
+    address: gh:wyrd-company/workspace-template@0.2.0
+
+job-limits:
+  default: 2h
+  phases:
+    build: 45m
+    initialize-command: 5m
+    generate: 10m
+    apply: 10m
+
+workspace-socket:
+  folder: /var/lib/menagerie-sockets
+  min-interval: 1m
+
+auto-commit:
+  every: 1h
+
+provisioning:
+  readiness-wait: 2m
+  wyrwood:
+    controller: ssh://wyrwood.internal:2222
+    host-key: SHA256:EcvbWlOVBUPSsJvj0iZtUtCM+/weaQ8eATbyTo7w9ik
+    agent: {{ inventory_hostname | split('.') | first }}
+    operator-key: menagerie-operator-2
+  xolotl:
+    url: https://xolotl.internal
+    # Where `xolotl keys issue` writes it, so nothing is copied
+    key-secret:
+      kv-mount: kv
+      path: xolotl/keys/devcontainer-provisioner/menagerie
