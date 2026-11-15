@@ -1,0 +1,35 @@
+# Managed by Ansible (homelab repo, role trowel).
+services:
+  trowel:
+    image: ghcr.io/wyrd-company/trowel:{{ trowel_version }}
+    container_name: {{ trowel_container }}
+    restart: unless-stopped
+    command: ["-config", "/config/config.yml"]
+    # The Wyrwood binding's access group, for its sockets.
+    group_add:
+      - "{{ trowel_socket_gid }}"
+    environment:
+      # The Wyrwood policy's default contract.
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
+      # Traces, metrics and logs to the OTel gateway.
+      OTEL_EXPORTER_OTLP_ENDPOINT: https://otel.internal:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: trowel
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/config:ro
+      - type: bind
+        source: {{ trowel_wyrwood_dir }}
+        target: /run/wyrwood
+        bind: { create_host_path: false }
+      # The host bundle, which includes the homelab root (NATS and the OTel gateway).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    networks:
+      homelab:
+        aliases:
+          - {{ trowel_name }}
+
+networks:
+  homelab:
+    external: true

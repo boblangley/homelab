@@ -1,0 +1,16 @@
+# Managed by Ansible (homelab repo, role trowel). Trowel rereads this file when it changes.
+server:
+  listen: ":8080"
+  read_header_timeout: 10s
+
+nats:
+  url: tls://nats.internal:4222
+  name: trowel
+  creds_vault: {path: homelab/nats/trowel, field: creds}
+
+# The Wyrwood socket adds the binding's token, so no auth section.
+vault:
+  address: unix:///run/wyrwood/vault.sock
+  kv_mount: kv
+
+{{ {'webhooks': trowel_webhooks} | to_nice_yaml(indent=2, width=120, sort_keys=false) }}
