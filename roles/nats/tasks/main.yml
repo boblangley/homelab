@@ -1,17 +1,14 @@
 ---
-- name: Read the password users' bcrypt hashes from OpenBao
+- name: Read the operator and account JWTs from OpenBao
   ansible.builtin.set_fact:
-    nats_bcrypt: >-
-      {{ nats_bcrypt | default({}) | combine({item: lookup('community.hashi_vault.vault_kv2_get',
-      'homelab/nats/' ~ item, engine_mount_point='kv').secret.bcrypt}) }}
-  loop: "{{ nats_password_users.keys() | list }}"
+    nats_resolver: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/server', engine_mount_point='kv').secret.resolver }}"
   delegate_to: localhost
   become: false
   no_log: true
 
-- name: Read user admin's seed from OpenBao
+- name: Read user admin's credentials from OpenBao
   ansible.builtin.set_fact:
-    nats_admin_seed: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/admin', engine_mount_point='kv').secret.seed }}"
+    nats_admin_creds: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/admin', engine_mount_point='kv').secret.creds }}"
   when: nats_streams | length > 0 or nats_consumers | length > 0
   delegate_to: localhost
   become: false
@@ -39,7 +36,7 @@
     group: root
     mode: "0644"
 
-# Has the password users' bcrypt hashes: readable only by the server's uid. Never shown in a diff.
+# No diff: the version before operator mode had the password users' bcrypt hashes, and a diff shows the old file.
 - name: Write the server config
   ansible.builtin.template:
     src: nats.conf.j2
@@ -47,9 +44,20 @@
     owner: "{{ nats_uid }}"
     group: "{{ nats_uid }}"
     mode: "0400"
-  no_log: true
   diff: false
   notify: Reload NATS
+
+# A change of operator or system account needs a restart; NATS refuses to reload one.
+- name: Write the operator and account JWTs
+  ansible.builtin.copy:
+    content: "{{ nats_resolver }}"
+    dest: "{{ nats_dir }}/config/resolver.conf"
+    owner: "{{ nats_uid }}"
+    group: "{{ nats_uid }}"
+    mode: "0400"
+  no_log: true
+  diff: false
+  notify: Restart NATS
 
 - name: Remove the config from its old place
   ansible.builtin.file:
@@ -75,20 +83,26 @@
   community.docker.docker_compose_v2:
     project_src: "{{ nats_dir }}"
     state: present
+  register: nats_start
   # A preview has only pretended to create the project directory on a first run.
   when: not (ansible_check_mode and nats_dirs is changed)
 
 # For the stream and consumer script, which runs the NATS CLI as admin.
-- name: Write user admin's seed
+- name: Write user admin's credentials
   ansible.builtin.copy:
-    content: "{{ nats_admin_seed }}\n"
-    dest: "{{ nats_dir }}/admin.nk"
+    content: "{{ nats_admin_creds }}"
+    dest: "{{ nats_dir }}/admin.creds"
     owner: root
     group: root
     mode: "0400"
-  when: nats_admin_seed is defined
+  when: nats_admin_creds is defined
   no_log: true
   diff: false
+
+- name: Remove user admin's old nkey seed
+  ansible.builtin.file:
+    path: "{{ nats_dir }}/admin.nk"
+    state: absent
 
 - name: Write the stream and consumer script
   ansible.builtin.template:
@@ -100,7 +114,7 @@
   register: nats_jetstream_script
 
 # Streams need the server's new config, such as a larger max_payload.
-- name: Reload NATS now if its config changed
+- name: Reload or restart NATS now if its config changed
   ansible.builtin.meta: flush_handlers
 
 # A preview runs it with --check, which only reports.

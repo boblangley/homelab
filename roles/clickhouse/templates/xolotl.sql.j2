@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS xolotl.exchanges_queue (
 )
 ENGINE = NATS SETTINGS
     nats_url = '{{ clickhouse_nats_url }}',
-    -- TLS, checked against SSL_CERT_FILE (the host bundle). The login is in config.d/nats.xml.
+    -- TLS, checked against SSL_CERT_FILE (the host bundle). The login is the .creds file in config.d/nats.xml.
     nats_secure = 1,
     nats_subjects = 'xolotl.exchanges.>',
     nats_stream = 'XOLOTL',

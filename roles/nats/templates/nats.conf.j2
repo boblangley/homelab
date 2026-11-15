@@ -1,4 +1,4 @@
-# Managed by Ansible (homelab repo, role nats). Readable only by the server: it has the password users' bcrypt hashes.
+# Managed by Ansible (homelab repo, role nats).
 server_name: nats
 listen: 0.0.0.0:4222
 
@@ -16,21 +16,5 @@ jetstream {
   store_dir: /data
 }
 
-system_account: SYS
-
-accounts {
-  SYS {}
-  APP {
-    jetstream: enabled
-    users: [
-{% for name, key in nats_users | dictsort %}
-      { nkey: {{ key }} }  # {{ name }}
-{% endfor %}
-{% for name, perms in nats_password_users | dictsort %}
-      { user: {{ name }}, password: "{{ nats_bcrypt[name] }}", permissions: {
-          publish: {{ perms.publish | default([]) | to_json }}
-          subscribe: {{ perms.subscribe | default([]) | to_json }} } }
-{% endfor %}
-    ]
-  }
-}
+# Operator homelab, system account SYS and account APP: the operator and account JWTs, from OpenBao.
+include resolver.conf

@@ -21,9 +21,9 @@
   become: false
   no_log: true
 
-- name: Read NATS user clickhouse's password from OpenBao
+- name: Read NATS user clickhouse's credentials from OpenBao
   ansible.builtin.set_fact:
-    clickhouse_nats_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/clickhouse', engine_mount_point='kv').secret.password }}"
+    clickhouse_nats_creds: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/clickhouse', engine_mount_point='kv').secret.creds }}"
   when: clickhouse_xolotl
   delegate_to: localhost
   become: false
@@ -42,6 +42,7 @@
     - { path: "{{ clickhouse_dir }}/users.d", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_dir }}/tls", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_dir }}/bin", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_dir }}/nats", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_data }}", owner: "{{ clickhouse_uid }}", mode: "0750" }
   register: clickhouse_dirs
 
@@ -87,15 +88,28 @@
   diff: false
   notify: Restart ClickHouse
 
-- name: Write the NATS login
-  ansible.builtin.template:
-    src: nats.xml.j2
-    dest: "{{ clickhouse_dir }}/config.d/nats.xml"
+# The NATS engine's login: a .creds file, readable only by the server's uid, named in config.d/nats.xml.
+- name: Write the NATS credentials
+  ansible.builtin.copy:
+    content: "{{ clickhouse_nats_creds }}"
+    dest: "{{ clickhouse_dir }}/nats/clickhouse.creds"
     owner: "{{ clickhouse_uid }}"
     group: "{{ clickhouse_uid }}"
     mode: "0400"
   when: clickhouse_xolotl
   no_log: true
+  diff: false
+  notify: Restart ClickHouse
+
+# No diff: the version before the .creds file had the NATS password, and a diff shows the old file.
+- name: Write the NATS login
+  ansible.builtin.template:
+    src: nats.xml.j2
+    dest: "{{ clickhouse_dir }}/config.d/nats.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  when: clickhouse_xolotl
   diff: false
   notify: Restart ClickHouse
 

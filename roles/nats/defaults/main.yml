@@ -4,8 +4,10 @@
 #
 # TLS: a certificate from OpenBao, kept current by role service_cert.
 #
-# Users are nkeys. The server needs only their public keys (nats_users); each seed is in OpenBao at
-# homelab/nats/<user> for the client that uses it.
+# Operator (JWT) mode: operator homelab, accounts SYS and APP (JetStream). Every user logs in with a .creds file (a user
+# JWT, which holds its permissions, and its seed), in OpenBao at homelab/nats/<user>, field creds. The server gets only
+# the operator and account JWTs (homelab/nats/server, field resolver), preloaded with a memory resolver. Users are
+# issued with nsc from the stores in homelab/nats/nsc, outside Ansible.
 nats_dir: /opt/docker/nats
 nats_data: /srv/nats
 nats_version: 2.15.3-alpine
@@ -14,14 +16,6 @@ nats_version: 2.15.3-alpine
 nats_uid: 1000
 
 nats_name: nats.internal
-
-# All users share account APP, with JetStream. user name: public nkey.
-nats_users: {}
-
-# Users with a password, for clients that can't use an nkey (Xolotl, ClickHouse's NATS engine). Each one's password and
-# its bcrypt hash are in OpenBao at homelab/nats/<user>, fields password and bcrypt; the server gets only the hash.
-# user name: {publish: [subjects], subscribe: [subjects]}
-nats_password_users: {}
 
 # Largest message the server takes. Xolotl's rows, with request and response bodies, reach several MB.
 nats_max_payload: 8MB
@@ -35,5 +29,5 @@ nats_streams: {}
 # Each: {stream, name}.
 nats_consumers: []
 
-# The CLI image that manages streams and consumers, as user admin (its seed, from OpenBao, is root-only on the host).
+# The CLI image that manages streams and consumers, as user admin (its .creds, from OpenBao, root-only on the host).
 nats_box_version: 0.20.2
