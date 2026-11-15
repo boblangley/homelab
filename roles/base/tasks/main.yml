@@ -13,6 +13,17 @@
   notify: Update CA certificates
 
 # Wyrd Company packages (wyrwood, toha, dcb). Key fingerprint 5EB4 73F2 0B0E 146B FAE0 EA03 FF65 A4E1 C35F 60F1.
+# Hosts set up by hand have the repository as a one-line .list with a .gpg key. Alongside the .sources below, apt
+# refuses both ("Conflicting values set for option Signed-By").
+- name: Remove the old-style Wyrd Company repository
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list.d/wyrd-company.list
+    - /etc/apt/keyrings/wyrd-company.gpg
+  notify: Update apt cache
+
 - name: Install the Wyrd Company apt signing key
   ansible.builtin.copy:
     src: wyrd-company.asc
