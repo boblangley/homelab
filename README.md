@@ -38,6 +38,16 @@ connects as `ansible` and reads OpenBao through the runner's Wyrwood socket. Run
 From a workstation, it connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with the
 operator's own token: `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
 
+The `boblangley-dev` workspace also connects as `agent`, using the dedicated `homelab-agent` OpenBao Transit key
+through its Wyrwood binding. The `agent` account authorizes both the operator's key and this workspace key; the
+private Transit key stays in OpenBao. The `homelab-agent` Wyrwood policy must remain exclusive to that workspace.
+
+To apply only automation SSH authorized keys, without reading secrets or changing services:
+
+```sh
+~/.local/share/venvs/ansible/bin/ansible-playbook site.yml --tags automation_keys --skip-tags always
+```
+
 ```sh
 python3 -m venv ~/.local/share/venvs/ansible
 ~/.local/share/venvs/ansible/bin/pip install ansible-core

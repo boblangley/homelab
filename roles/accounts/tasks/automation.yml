@@ -1,5 +1,5 @@
 ---
-# Accounts that act on hosts for automation, each with one authorized key and passwordless sudo.
+# Accounts that act on hosts for automation, with explicit authorized keys and passwordless sudo.
 # A new host gets `agent` by hand first; see README.
 
 - name: Create automation account groups
@@ -26,17 +26,20 @@
 - name: Read the accounts on the host
   ansible.builtin.getent:
     database: passwd
+  tags: automation_keys
 
 # A preview can't add a key for an account it has only pretended to create.
-- name: Authorize each automation account's key
+- name: Authorize each automation account's keys
   ansible.posix.authorized_key:
     user: "{{ item.name }}"
-    key: "{{ lookup('ansible.builtin.file', item.key) }}"
+    # Pass every key together: exclusive applies to the whole account, not each key in a loop.
+    key: "{{ query('ansible.builtin.file', *item['keys']) | join('\n') }}"
     exclusive: true
   loop: "{{ accounts_automation }}"
   loop_control:
     label: "{{ item.name }}"
   when: item.name in ansible_facts.getent_passwd or not ansible_check_mode
+  tags: automation_keys
 
 - name: Give automation accounts passwordless sudo
   ansible.builtin.copy:
