@@ -52,3 +52,5 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_agent_dir }}"
     state: present
+  # A preview of a host's first run has only pretended to install Docker.
+  when: not (docker_previewed_only | default(false))

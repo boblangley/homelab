@@ -1,5 +1,5 @@
 ---
-# Docker's own packages, as on the other workers. Key fingerprint 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88.
+# Docker's own packages, for Ubuntu or Debian. Key fingerprint 9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88.
 - name: Install the Docker apt signing key
   ansible.builtin.copy:
     src: docker.asc
@@ -13,7 +13,7 @@
   ansible.builtin.copy:
     content: |
       Types: deb
-      URIs: https://download.docker.com/linux/ubuntu
+      URIs: https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}
       Suites: {{ ansible_facts.distribution_release }}
       Components: stable
       Architectures: {{ 'arm64' if ansible_facts.architecture == 'aarch64' else 'amd64' }}
@@ -41,6 +41,11 @@
     enabled: true
     state: started
   when: not (ansible_check_mode and docker_repo is changed)
+
+# Later roles read this: in a preview of a first run, Docker isn't installed, so nothing can be started.
+- name: Note whether Docker is only previewed
+  ansible.builtin.set_fact:
+    docker_previewed_only: "{{ ansible_check_mode and docker_repo is changed }}"
 
 - name: Join the Swarm
   ansible.builtin.import_tasks: swarm.yml
