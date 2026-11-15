@@ -1,0 +1,4 @@
+---
+# AZW SER6 (Ryzen 9 6900HX, 64 GB), Ubuntu 26.04. Docker worker for Arcane sandboxes.
+# Disks: 500 GB NVMe for the system (and /srv), 1 TB NVMe mounted at /home.
+# No uid-1000 account.
