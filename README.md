@@ -54,3 +54,4 @@ A fresh host has only the installer's account and a password, so its first step 
 1. Create `agent` (uid 1500) with the operator's public key in `~agent/.ssh/authorized_keys` and `agent ALL=(ALL) NOPASSWD: ALL` in `/etc/sudoers.d/agent`.
 2. Add the host to `inventory/hosts.yml` and give it a `host_vars` file.
 3. Run the playbook from a workstation, limited to the new host: `ansible-playbook site.yml --limit <host> --skip-tags runner`. It turns off password login, so step 1 must work first. The Apply workflow connects as `ansible`, which this first run creates, so until then Apply reports the host unreachable.
+4. For a Docker worker, add it to `edge_socket_proxies` (docker-infra) only after that run has started its socket proxy.
