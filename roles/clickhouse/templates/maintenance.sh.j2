@@ -1,0 +1,88 @@
+#!/bin/bash
+# Managed by Ansible (homelab repo, role clickhouse).
+# ClickHouse jobs, run as user maintenance inside the container:
+#   maintenance retention   set each OTel table's TTL from the role's settings; prints "changed <table>"
+#                           (--check: only print what would change)
+#   maintenance archive     write yesterday's rows (UTC) of each OTel table to B2, archive/<table>/date=<day>.parquet
+#   maintenance backup      back up everything to B2: a full backup every 7 days, incremental on the days between
+set -euo pipefail
+
+q() {
+  docker exec clickhouse clickhouse-client --secure --host 127.0.0.1 --port 9440 --accept-invalid-certificate \
+    --user maintenance --query "$1"
+}
+
+exists() { [ "$(q "EXISTS TABLE otel.$1")" = 1 ]; }
+
+# table column days
+TABLES=(
+{% for signal, tables in clickhouse_otel_tables.items() %}
+{% for table, column in tables.items() %}
+  "{{ table }} {{ column }} {{ clickhouse_otel_retention[signal] | default(0) | int }}"
+{% endfor %}
+{% endfor %}
+)
+
+retention() {
+  local table column days want have check="${1:-}"
+
+  for entry in "${TABLES[@]}"; do
+    read -r table column days <<<"$entry"
+    exists "$table" || continue
+    have=$(q "SELECT extract(create_table_query, 'TTL (.*?) SETTINGS') FROM system.tables WHERE database = 'otel' AND name = '$table'")
+    if [ "$days" -gt 0 ]; then
+      want="toDateTime($column) + toIntervalDay($days)"
+      [ "$have" = "$want" ] && continue
+      [ -z "$check" ] && q "ALTER TABLE otel.$table MODIFY TTL $want"
+    else
+      [ -z "$have" ] && continue
+      [ -z "$check" ] && q "ALTER TABLE otel.$table REMOVE TTL"
+    fi
+    echo "changed $table"
+  done
+}
+
+archive() {
+  local day table column days
+  day=$(date -u -d yesterday +%F)
+  for entry in "${TABLES[@]}"; do
+    read -r table column days <<<"$entry"
+    # The trace lookup table is derived from otel_traces.
+    [ "$table" = otel_traces_trace_id_ts ] && continue
+    exists "$table" || continue
+    [ "$(q "SELECT count() FROM otel.$table WHERE toDate($column) = '$day'")" = 0 ] && continue
+    # Overwrites the day's file, so a rerun never duplicates rows.
+    q "INSERT INTO FUNCTION s3(b2, filename = 'archive/$table/date=$day.parquet', format = 'Parquet')
+       SETTINGS s3_truncate_on_insert = 1
+       SELECT * FROM otel.$table WHERE toDate($column) = '$day'"
+    echo "archived $table $day"
+  done
+}
+
+backup() {
+  local today latest age what="ALL EXCEPT DATABASES system, information_schema, INFORMATION_SCHEMA"
+  today=$(date -u +%F)
+  if [ -n "$(q "SELECT _path FROM s3(b2, filename = 'backups/*/$today/.backup', format = 'One')
+                SETTINGS s3_throw_on_zero_files_match = 0")" ]; then
+    echo "backup for $today already exists"
+    return
+  fi
+  latest=$(q "SELECT max(splitByChar('/', _path)[-2]) FROM s3(b2, filename = 'backups/full/*/.backup', format = 'One')
+              SETTINGS s3_throw_on_zero_files_match = 0")
+  age=7
+  [ -n "$latest" ] && age=$(( ($(date -u -d "$today" +%s) - $(date -u -d "$latest" +%s)) / 86400 ))
+  if [ "$age" -ge 7 ]; then
+    q "BACKUP $what TO S3(b2, 'backups/full/$today')" >/dev/null
+    echo "full backup $today"
+  else
+    q "BACKUP $what TO S3(b2, 'backups/incr/$today') SETTINGS base_backup = S3(b2, 'backups/full/$latest')" >/dev/null
+    echo "incremental backup $today (base $latest)"
+  fi
+}
+
+case "${1:-}" in
+  retention) retention "${2:-}" ;;
+  archive) archive ;;
+  backup) backup ;;
+  *) echo "usage: $0 retention [--check] | archive | backup" >&2; exit 2 ;;
+esac

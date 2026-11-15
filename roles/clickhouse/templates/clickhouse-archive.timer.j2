@@ -1,0 +1,10 @@
+# Managed by Ansible (homelab repo, role clickhouse).
+[Unit]
+Description=Daily ClickHouse archive to B2
+
+[Timer]
+OnCalendar={{ clickhouse_archive_at }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -4,6 +4,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ clickhouse_dir }}"
     state: restarted
+    wait: true
   when:
     - clickhouse_start is not changed
     - not (ansible_check_mode and clickhouse_dirs is changed)

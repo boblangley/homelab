@@ -13,6 +13,14 @@
 
 # Directories, not single files, are mounted: Ansible replaces a file with a new one, and a container keeps seeing the
 # old file. ClickHouse rereads users.d and the certificate when they change.
+- name: Read the B2 key from OpenBao
+  ansible.builtin.set_fact:
+    clickhouse_b2_key: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/b2/clickhouse', engine_mount_point='kv').secret }}"
+  when: clickhouse_b2_bucket | length > 0
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Create the project directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -25,6 +33,7 @@
     - { path: "{{ clickhouse_dir }}/config.d", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_dir }}/users.d", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_dir }}/tls", owner: root, mode: "0755" }
+    - { path: "{{ clickhouse_dir }}/bin", owner: root, mode: "0755" }
     - { path: "{{ clickhouse_data }}", owner: "{{ clickhouse_uid }}", mode: "0750" }
   register: clickhouse_dirs
 
@@ -57,6 +66,19 @@
   no_log: true
   diff: false
 
+# The B2 key: readable only by the server's uid. Never shown in a diff.
+- name: Write the B2 connection
+  ansible.builtin.template:
+    src: b2.xml.j2
+    dest: "{{ clickhouse_dir }}/config.d/b2.xml"
+    owner: "{{ clickhouse_uid }}"
+    group: "{{ clickhouse_uid }}"
+    mode: "0400"
+  when: clickhouse_b2_bucket | length > 0
+  no_log: true
+  diff: false
+  notify: Restart ClickHouse
+
 - name: Keep the TLS certificate current
   ansible.builtin.include_role:
     name: service_cert
@@ -69,6 +91,58 @@
   community.docker.docker_compose_v2:
     project_src: "{{ clickhouse_dir }}"
     state: present
+    wait: true
   register: clickhouse_start
   # A preview has only pretended to create the project directory on a first run.
   when: not (ansible_check_mode and clickhouse_dirs is changed)
+
+- name: Write the maintenance script
+  ansible.builtin.template:
+    src: maintenance.sh.j2
+    dest: "{{ clickhouse_dir }}/bin/maintenance"
+    owner: root
+    group: root
+    mode: "0755"
+  register: clickhouse_script
+
+# The retention step needs the server up, after any restart the config needs.
+- name: Restart ClickHouse now if its config changed
+  ansible.builtin.meta: flush_handlers
+
+# A preview runs it with --check, which only reports.
+- name: Set the OTel retention
+  ansible.builtin.command: "{{ clickhouse_dir }}/bin/maintenance retention{{ ' --check' if ansible_check_mode else '' }}"
+  register: clickhouse_retention
+  changed_when: clickhouse_retention.stdout | length > 0
+  check_mode: false
+  # A preview can't run a script it has only pretended to write.
+  when: not (ansible_check_mode and (clickhouse_dirs is changed or clickhouse_script is changed))
+
+- name: Write the archive and backup units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - clickhouse-archive.service
+    - clickhouse-archive.timer
+    - clickhouse-backup.service
+    - clickhouse-backup.timer
+  when: clickhouse_b2_bucket | length > 0
+  register: clickhouse_units
+
+- name: Enable the archive and backup timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: "{{ clickhouse_units is changed }}"
+  loop:
+    - clickhouse-archive.timer
+    - clickhouse-backup.timer
+  when:
+    - clickhouse_b2_bucket | length > 0
+    # A preview can't enable units it has only pretended to write.
+    - not (ansible_check_mode and clickhouse_units is changed)
