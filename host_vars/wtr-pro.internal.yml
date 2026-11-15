@@ -66,3 +66,10 @@ clickhouse_b2_endpoint: https://s3.us-west-004.backblazeb2.com
 
 # Xolotl's tables, loaded from NATS stream XOLOTL. No TTL: kept until decided otherwise.
 clickhouse_xolotl: true
+
+# ntfy (role ntfy), through the wyrd Cloudflare tunnel. Users bob (admin), homelab and workspaces; their hashes and
+# tokens are in OpenBao at homelab/ntfy. The tokens publish only to their own topic.
+ntfy_base_url: https://ntfy.wyrd.team
+ntfy_access:
+  - homelab:homelab:wo
+  - workspaces:workspaces:wo

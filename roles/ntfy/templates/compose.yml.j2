@@ -1,0 +1,68 @@
+# Managed by Ansible (homelab repo, role ntfy).
+services:
+  # Bound in Wyrwood as compose ntfy/secrets; its socket directory is named after the container.
+  secrets:
+    image: curlimages/curl:{{ ntfy_curl_version }}
+    container_name: ntfy-secrets
+    restart: unless-stopped
+    # Root, to use the agent-owned sockets without an access group and to hand the files to ntfy's uid.
+    user: "0:0"
+    entrypoint: ["/bin/sh", "/scripts/fetch-secrets.sh"]
+    environment:
+      # The Wyrwood policy's default contract.
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
+    volumes:
+      - type: bind
+        source: /run/wyrwood/containers/ntfy-secrets
+        target: /run/wyrwood
+        bind: { create_host_path: false }
+      - ./scripts:/scripts:ro
+      - secrets:/secrets
+    network_mode: none
+
+  ntfy:
+    image: binwiederhier/ntfy:{{ ntfy_version }}
+    container_name: ntfy
+    restart: unless-stopped
+    user: "{{ ntfy_uid }}:{{ ntfy_uid }}"
+    entrypoint: ["/bin/sh", "/scripts/start-ntfy.sh"]
+    environment:
+      NTFY_BASE_URL: {{ ntfy_base_url }}
+      NTFY_LISTEN_HTTP: ":8080"
+      # cloudflared sets X-Forwarded-For.
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_UPSTREAM_BASE_URL: {{ ntfy_upstream_base_url }}
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_ACCESS: "{{ ntfy_access | join(',') }}"
+      NTFY_ENABLE_LOGIN: "true"
+    volumes:
+      - ./scripts:/scripts:ro
+      - secrets:/secrets:ro
+      - {{ ntfy_data }}:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/v1/health | grep -q '\"healthy\":true'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - secrets
+    networks:
+      homelab:
+        aliases:
+          - {{ ntfy_name }}
+
+networks:
+  homelab:
+    external: true
+
+volumes:
+  # In memory: the users and tokens never reach a disk.
+  secrets:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=1m,mode=0700,uid={{ ntfy_uid }},gid={{ ntfy_uid }}"
