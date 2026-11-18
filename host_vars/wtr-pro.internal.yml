@@ -87,4 +87,60 @@ deck_bots:
     token: {path: deck/bots/WyrdBot, field: token}
 
 # Deck's clients: one entry per workspace, from scripts/openbao/deck-client.fish, with its grants.
-deck_keys: []
+deck_keys:
+  - name: alignment
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ0VTwOzkiuT7cUviJX4l1YfYaKDD4j/D1Si82zON9he deck:deck-alignment
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels:
+          - 1572630018822115539 # text
+          - 1569972914604740680 # forum
+  - name: refinery
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBq1Efyn5jtB/1FxOV/oE9o91d+2GgkJxmX3BUr9/rYK deck:deck-refinery
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels: 
+          - 1572631300974579712 # text
+          - 1569972809470574673 # forum
+  - name: tavern
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGgNRQxakomP5WAbBad7l74COFRz5KVSY9Acw1o78Wl2 deck:deck-tavern
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels: 
+          - 1572631454259609650 # text
+          - 1569973932344352828 # forum
+  - name: teleport
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFC3AmylT5wK/+BaKJXe/HV4Yd4OFNQY0GFjfQHNrdn9 deck:deck-teleport
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels: 
+          - 1572631839976325251 # text
+          - 1572631890911830177 # forum
+  - name: toolchain
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ4UkdBw0e360kpmo+UEjnVwrpFsoB7P9N1134n0HeKr deck:deck-toolchain
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels:
+          - 1571165674515071097 # text
+          - 1569972581438853170 # forum
+  - name: truename
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBgwPptiSobLr1tsv+dqeyynFFNzggwQJHfnR7tDa8F2 deck:deck-truename
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels: 
+          - 1572631656894959686 # text
+          - 1569972864311107604 # forum
+  - name: websites
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIX7laHNpjh8tbax0scf+58q0mssSV24LiyoUCGqvwHo deck:deck-websites
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels: 
+          - 1572632268982198272 # text
+          - 1572632400750452947 # forum
