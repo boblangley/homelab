@@ -30,4 +30,14 @@ nats:
     manage: true
 
 {{ {'bots': deck_bots} | to_nice_yaml(indent=2, width=1000, sort_keys=false) }}
-{{ {'keys': deck_keys} | to_nice_yaml(indent=2, width=1000, sort_keys=false) }}
+{# Discord IDs as strings, even when host_vars leaves them unquoted and YAML reads them as integers. #}
+{% set keys = [] %}
+{% for key in deck_keys %}
+{%   set grants = [] %}
+{%   for grant in key.grants %}
+{%     set _ = grants.append({'bot': grant.bot, 'server': grant.server | string,
+                              'channels': grant.channels | map('string') | list}) %}
+{%   endfor %}
+{%   set _ = keys.append({'name': key.name, 'public_key': key.public_key, 'grants': grants}) %}
+{% endfor %}
+{{ {'keys': keys} | to_nice_yaml(indent=2, width=1000, sort_keys=false) }}
