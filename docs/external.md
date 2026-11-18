@@ -98,7 +98,10 @@ user JWT:
 | `xolotl` | `xolotl.exchanges.>`, `$JS.API.STREAM.INFO.XOLOTL` | `_INBOX.>` |
 | `clickhouse` | the `XOLOTL` consumer `clickhouse`'s API and acks | `_INBOX.>` |
 | `trowel` | `github.>` | `_INBOX.>` |
-| `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
+| `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, `$JS.API.INFO`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
+
+To widen a user, `nats-user.fish <user> --update --pub ... --sub ...` adds subjects and issues a new JWT for the
+same key; restart the service that uses it.
 
 Streams and consumers are declared in `host_vars` and kept by role `nats`, except Deck's stream `DECK` and bucket
 `deck-threads`, which Deck creates and corrects itself at start.
