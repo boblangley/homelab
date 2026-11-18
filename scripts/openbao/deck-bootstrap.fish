@@ -61,8 +61,9 @@ echo "  $public"
 
 # Deck's own stream DECK (subjects deck.>, its activity index an ordered consumer) and bucket deck-threads (stream
 # KV_deck-threads, direct gets, a watch), which it creates and corrects at start, and nothing of another stream's.
+# $JS.API.INFO, the account's JetStream totals and limits, is read before the bucket is created.
 set js '$JS.API'
-set pub (string join , -- 'deck.>' '$KV.deck-threads.>' '$JS.FC.>' \
+set pub (string join , -- 'deck.>' '$KV.deck-threads.>' '$JS.FC.>' $js.INFO \
     $js.STREAM.\*.DECK $js.STREAM.\*.\*.DECK $js.DIRECT.GET.DECK $js.DIRECT.GET.DECK.\> \
     $js.CONSUMER.\*.DECK $js.CONSUMER.\*.DECK.\> $js.CONSUMER.\*.\*.DECK.\> \
     $js.STREAM.\*.KV_deck-threads $js.STREAM.\*.\*.KV_deck-threads \
