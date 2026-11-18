@@ -2,7 +2,8 @@
 # Gives one workspace its Deck identity: Transit key deck-<workspace> (ed25519, namespace wyrwood, mount transit),
 # which never leaves OpenBao. The workspace's Wyrwood binding signs with it through policy deck-client (value
 # deck_key: <workspace>). Prints the public line, as `deck config key` would, and the entry to add to deck_keys in
-# host_vars/wtr-pro.internal.yml; the grants are yours to fill in. A key that exists is reused, not replaced.
+# host_vars/wtr-pro.internal.yml, with the bots configured; the grants are yours to fill in. A key that exists is
+# reused, not replaced.
 #   fish scripts/openbao/deck-client.fish <workspace>
 
 set name $argv[1]
@@ -51,7 +52,18 @@ echo "Add to deck_keys in host_vars/wtr-pro.internal.yml, with its grants, and A
 echo "  - name: $name"
 echo "    public_key: $line"
 echo "    grants:"
-echo "      - bot: wyrdbot"
+# The bots in deck_bots, to choose from, as Ansible sees them; none listed if it can't say.
+# From the repo's root, where ansible.cfg is; fish has no subshell, so pushd and popd.
+pushd (status dirname)/../..
+set bots (ansible-inventory --host wtr-pro.internal 2>/dev/null \
+    | python3 -I -c 'import json, sys; print(", ".join(b["name"] for b in json.load(sys.stdin).get("deck_bots", [])))' \
+    2>/dev/null)
+popd
+if test -n "$bots"
+    echo "      - bot: <bot>  # one of: $bots"
+else
+    echo "      - bot: <bot>"
+end
 echo "        server: \"<server id>\""
 echo "        channels:"
 echo "          - \"<channel id>\""
