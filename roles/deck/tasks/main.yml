@@ -1,0 +1,58 @@
+---
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ deck_dir }}"
+    - "{{ deck_dir }}/config"
+  register: deck_dirs
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ deck_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Deck
+
+# Validation reads only the file: it contacts no server.
+- name: Write the config
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ deck_dir }}/config/config.yml"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: >-
+      docker run --rm --network none --user 0:0 -v %s:/etc/deck/config.yml:ro
+      --entrypoint /usr/local/bin/deck ghcr.io/wyrd-company/deck:{{ deck_version }}
+      service validate --config /etc/deck/config.yml
+  notify: Restart Deck
+
+- name: Check for the Wyrwood binding's directory
+  ansible.builtin.stat:
+    path: "{{ deck_wyrwood_dir }}"
+  register: deck_binding
+
+- name: Report that Deck isn't bound yet
+  ansible.builtin.debug:
+    msg: >-
+      Bind compose {{ deck_container }}/{{ deck_container }} (directory {{ deck_container }}) on agent
+      {{ inventory_hostname_short }} in the Wyrwood UI, with policy deck and access group {{ deck_socket_gid }},
+      then run the playbook again.
+  when: not deck_binding.stat.exists
+
+- name: Start the project
+  community.docker.docker_compose_v2:
+    project_src: "{{ deck_dir }}"
+    state: present
+  register: deck_start
+  when:
+    - deck_binding.stat.exists
+    # A preview has only pretended to create the project directory on a first run.
+    - not (ansible_check_mode and deck_dirs is changed)

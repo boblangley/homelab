@@ -9,8 +9,8 @@ accounts_services:
     comment: Host services
 
 # NATS users (role nats) are user JWTs, each with its permissions, issued outside Ansible: admin, workspace,
-# xolotl (publishes xolotl.exchanges.>), clickhouse (consumes XOLOTL), trowel (publishes github.>). Their .creds are in
-# OpenBao at homelab/nats/<user>.
+# xolotl (publishes xolotl.exchanges.>), clickhouse (consumes XOLOTL), trowel (publishes github.>), deck (its own
+# stream DECK and bucket deck-threads). Their .creds are in OpenBao at homelab/nats/<user>.
 
 # Xolotl's exchanges, with request and response bodies (50-150 KB a row), wait here until ClickHouse loads them.
 nats_streams:
@@ -69,10 +69,22 @@ ntfy_access:
 
 # Trowel (role trowel), through the wyrd Cloudflare tunnel as https://hooks.wyrd.team. Wyrwood binding compose
 # trowel/trowel, policy trowel (reads homelab/nats/trowel and homelab/trowel/github/*), access group 1503.
+# Deck (role deck), on the homelab overlay as deck.internal:2222. Wyrwood binding compose deck/deck, policy deck
+# (reads homelab/deck/host, homelab/nats/deck and deck/bots/*), access group 1504.
 wyrwood_access_groups:
   - name: trowel
     gid: 1503
+  - name: deck
+    gid: 1504
 
 # One GitHub webhook each, at https://hooks.wyrd.team/github/<name>, with its own secret.
 trowel_github_orgs:
   - wyrd-company
+
+# Deck's Discord bots. The token was stored by hand at deck/bots/WyrdBot (mount kv, namespace wyrwood).
+deck_bots:
+  - name: wyrdbot
+    token: {path: deck/bots/WyrdBot, field: token}
+
+# Deck's clients: one entry per workspace, from scripts/openbao/deck-client.fish, with its grants.
+deck_keys: []

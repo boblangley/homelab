@@ -83,6 +83,12 @@
   roles:
     - trowel
 
+- name: Deck
+  hosts: deck:&managed
+  become: true
+  roles:
+    - deck
+
 # After the gateway, which the agents send to.
 - name: OpenTelemetry agent
   hosts: docker:&managed

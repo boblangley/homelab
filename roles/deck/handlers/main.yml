@@ -1,0 +1,10 @@
+---
+# Deck reads its config only at start.
+- name: Restart Deck
+  community.docker.docker_compose_v2:
+    project_src: "{{ deck_dir }}"
+    state: restarted
+  when:
+    - deck_binding.stat.exists
+    - deck_start is not changed
+    - not (ansible_check_mode and deck_dirs is changed)
