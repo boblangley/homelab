@@ -51,4 +51,7 @@ echo "Add to deck_keys in host_vars/wtr-pro.internal.yml, with its grants, and A
 echo "  - name: $name"
 echo "    public_key: $line"
 echo "    grants:"
-echo "      - {bot: wyrdbot, server: \"<server id>\", channels: [\"<parent channel id>\"]}"
+echo "      - bot: \"<bot-name>\"
+echo "      - server: \"<server id>\"
+echo "      - channels:
+echo "        - \"<channel id>\"
