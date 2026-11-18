@@ -106,7 +106,7 @@ Streams and consumers are declared in `host_vars` and kept by role `nats`, excep
 ## Deck
 
 Role `deck` runs the service on wtr-pro as `deck.internal:2222` (SSH, on the overlay). Bot `wyrdbot` is a Discord
-application with the Message Content intent, installed in each server with the `bot` scope; in each granted parent
+application with the Message Content intent, installed in each server with the `bot` scope; in each granted
 channel it needs View Channel, Send Messages, Send Messages in Threads, Create Public Threads, Create Polls, Embed
 Links, Attach Files and Read Message History.
 
@@ -122,8 +122,8 @@ Onboarding a workspace:
 
 1. `fish scripts/openbao/deck-client.fish <workspace>`: creates Transit key `deck-<workspace>` and prints its
    `deck_keys` entry.
-2. Add the entry to `deck_keys` in `host_vars/wtr-pro.internal.yml` with its grants (bot, server ID, parent channel
-   IDs, or `["*"]`), and Apply; Deck restarts.
+2. Add the entry to `deck_keys` in `host_vars/wtr-pro.internal.yml` with its grants (bot, server ID, and the IDs of
+   the channels it may post in, not of threads; or `["*"]` for the whole server), and Apply; Deck restarts.
 3. Give the workspace's binding policy `deck-client` with value `deck_key: <workspace>`. Its `deck` CLI then works
    with the client config from the workspace dotfiles: `deck channels` lists what it was granted.
 
