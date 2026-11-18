@@ -69,7 +69,7 @@ tar cz -C /nsc/out . | base64 | tr -d "\n"
 set work (mktemp -d /dev/shm/nats-user.XXXXXX)
 chmod 0700 $work
 set bundle (printf '%s' $store | docker run --rm -i --tmpfs /nsc:mode=0700 \
-    -e NATS_USER=$name -e NATS_PUB=$_flag_pub -e NATS_SUB=$_flag_sub -e NATS_UPDATE=$_flag_update \
+    -e "NATS_USER=$name" -e "NATS_PUB=$_flag_pub" -e "NATS_SUB=$_flag_sub" -e "NATS_UPDATE=$_flag_update" \
     natsio/nats-box:0.20.2 sh -c $inner)
 set rc $status
 set -e store
