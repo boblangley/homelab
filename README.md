@@ -25,7 +25,7 @@ client IDs. Those live in OpenBao, and roles read them at run time.
 - `roles/`: one role per concern. `base` applies to every host.
 - `site.yml`: the playbook.
 - `docs/external.md`: what the roles depend on that is configured by hand outside Ansible (OpenBao, Wyrwood, NATS
-  users, Cloudflare, B2, GitHub, Pocket ID).
+  users, Deck, Cloudflare, B2, GitHub, Pocket ID).
 - `scripts/openbao/`: scripts that put secrets into OpenBao. Each asks for the token and prints only lengths and
   results.
 

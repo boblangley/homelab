@@ -1,0 +1,32 @@
+---
+# Compose project `deck`: the Deck service, which holds the Discord bot tokens, connects to Discord and publishes
+# activity to NATS JetStream. Clients (the `deck` CLI in workspaces) reach it on the homelab overlay as
+# deck.internal:2222, over SSH; the host publishes no ports.
+#
+# Secrets come through its Wyrwood binding (compose deck/deck, directory deck), which Deck reads from OpenBao through
+# vault.sock once, at start: its SSH host key (homelab/deck/host, field private_key), its NATS .creds
+# (homelab/nats/deck, field creds) and each bot's token. Nothing secret is in its environment or on disk.
+#
+# Deck keeps its state in NATS: stream DECK (subjects deck.>) and KV bucket deck-threads, which it creates and corrects
+# itself at start (so they are not role nats's). It reads its config only at start: a change restarts it.
+deck_dir: /opt/docker/deck
+deck_version: 0.1.3
+deck_name: deck.internal
+deck_container: deck
+deck_wyrwood_dir: "/run/wyrwood/containers/{{ deck_container }}"
+
+# The image runs as uid/gid 10001, which reaches the binding's sockets through this group. The wyrwood_agent role
+# creates the group and adds the agent to it.
+deck_socket_gid: 1504
+
+# How long activity (messages, button presses, poll votes) stays in stream DECK.
+deck_retention: 168h
+
+# Discord bots: {name, token: {path, field}}. A name is lower-case letters, digits and hyphens; the token is a KV
+# reference in mount kv, which the binding's policy must let Deck read.
+deck_bots: []
+
+# Clients: {name, public_key, grants: [{bot, server, channels}]}. The public key is the line
+# scripts/openbao/deck-client.fish prints; server and channels are Discord IDs, quoted, or channels ["*"] for the
+# whole server. Clients can't connect until they are here.
+deck_keys: []

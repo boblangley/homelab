@@ -1,0 +1,30 @@
+# Managed by Ansible (homelab repo, role deck).
+services:
+  deck:
+    image: ghcr.io/wyrd-company/deck:{{ deck_version }}
+    container_name: {{ deck_container }}
+    restart: unless-stopped
+    # Its shutdown drains sends and NATS within 10 seconds.
+    stop_grace_period: 15s
+    # The image's user, numeric: Wyrwood checks socket access from inspect output.
+    user: "10001:10001"
+    # The Wyrwood binding's access group, for its sockets.
+    group_add:
+      - "{{ deck_socket_gid }}"
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/deck:ro
+      - type: bind
+        source: {{ deck_wyrwood_dir }}
+        target: /run/wyrwood
+        bind: { create_host_path: false }
+      # The host bundle, which includes the homelab root (NATS).
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    networks:
+      homelab:
+        aliases:
+          - {{ deck_name }}
+
+networks:
+  homelab:
+    external: true

@@ -1,0 +1,33 @@
+# Managed by Ansible (homelab repo, role deck).
+listen:
+  ssh: ":2222"
+  # Inside the container; the image's health check uses it.
+  health: "127.0.0.1:8080"
+
+# The Wyrwood socket adds the binding's token, so no auth section.
+vault:
+  address: unix:///run/wyrwood/vault.sock
+  kv_mount: kv
+
+host_key:
+  path: homelab/deck/host
+  field: private_key
+
+nats:
+  servers:
+    - tls://nats.internal:4222
+  name: deck
+  creds:
+    path: homelab/nats/deck
+    field: creds
+  subject_prefix: deck
+  stream:
+    name: DECK
+    max_age: {{ deck_retention }}
+    manage: true
+  threads:
+    bucket: deck-threads
+    manage: true
+
+{{ {'bots': deck_bots} | to_nice_yaml(indent=2, width=1000, sort_keys=false) }}
+{{ {'keys': deck_keys} | to_nice_yaml(indent=2, width=1000, sort_keys=false) }}
