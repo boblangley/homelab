@@ -86,21 +86,27 @@ holding any other policy is hidden from it.
 
 The Policies screen settings, saved on 2026-11-20:
 
-- Required: `workspace`, `xolotl-client-key` and `deck-client`. Marking a policy required adds it to every existing
-  selection and applies it.
-- Multi-select group `Operator`: `operator-boblangley` and `operator-iradesa`. A group checks a selection when it is
-  created or edited; it does not change existing ones. Every workspace had at least one when the group was saved.
+- Required: `workspace`, `xolotl-client-key` and `deck-client`.
+- Multi-select group `Operator`: `operator-boblangley` and `operator-iradesa`.
 - Optional: `homelab-agent`.
 
-A binding value (`xolotl_key_name`, `deck_key`) is the workspace's name, unless the first start of 0.5.0 imported
-another value from the workspace's binding, which Menagerie keeps. On 2026-11-20 every imported value was the
-workspace's name.
+On 2026-11-20 every workspace's binding held the required policies and at least one `Operator` policy, all conforming.
+
+When these settings change: saving a newly required policy adds it to each stored selection and queues an apply job
+for each workspace it changes. The save alone does not show that Wyrwood changed, so check each row for a pending or
+failed apply. A group is enforced when a workspace is created; an edit of an existing selection keeps it, even if it
+has no policy from the group.
+
+Binding values (`xolotl_key_name`, `deck_key`): Menagerie keeps each value its 0.5.0 import took, from the workspace's
+Wyrwood binding or, when it found none, from the workspace's legacy declaration. A value name a workspace does not
+have yet takes the workspace's name when it is first needed. On 2026-11-20 every value was the workspace's name.
 
 Templates are registered in Menagerie's interface and kept in its data volume, not in this repo. On a fresh volume,
-register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template` (at 0.5.0 on 2026-11-20). Its
-interview asks for the Xolotl key policy: answer `devcontainer`, the same as `provisioning.xolotl.key-policy`, as the
-template's post-start check reads the key it names. The Toha default in the volume
-(`toha/config/config.yml`, `template-defaults`) covers only `workspace-template@0.1.0`.
+register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template@0.5.0`, and check that Validate
+shows version `0.5.0`: without the tag Menagerie takes the newest version, and later versions ask other questions.
+The 0.5.0 interview asks for the Xolotl key policy: answer `devcontainer`, the same as
+`provisioning.xolotl.key-policy`, as the template's post-start check reads the key it names. The Toha default in the
+volume (`toha/config/config.yml`, `template-defaults`) covers only `workspace-template@0.1.0`.
 
 Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
