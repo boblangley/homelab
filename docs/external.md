@@ -78,12 +78,29 @@ Controller `wyrwood.internal` (docker-infra); an agent on every Docker host. Bin
 Access groups 1502, 1503 and 1504 are created by role `wyrwood_agent` (`wyrwood_access_groups`); on gtr6 the agent was
 added to `workspaces` by hand.
 
-Menagerie chooses each gtr6 workspace's policies (Menagerie's Policies screen; templates no longer declare them).
-Its operator key, `menagerie-gtr6-3` (offered as `menagerie-operator-3`), may read and bind `workspace`,
+Menagerie chooses each gtr6 workspace's policies, on its Policies screen and each workspace's **Policies**; templates
+no longer declare them, and an edit made directly in Wyrwood is replaced at the workspace's next apply, start or
+rebuild. Its operator key, `menagerie-gtr6-3` (offered as `menagerie-operator-3`), may read and bind `workspace`,
 `xolotl-client-key`, `deck-client`, `operator-boblangley`, `operator-iradesa` and `homelab-agent` on gtr6; a binding
-holding any other policy is hidden from it. The Policies screen marks `workspace`, `xolotl-client-key` and
-`deck-client` required, and puts `operator-boblangley` and `operator-iradesa` in a multi-select group, so each
-workspace has at least one; `homelab-agent` is optional. Menagerie sets each binding value to the workspace's name.
+holding any other policy is hidden from it.
+
+The Policies screen settings, saved on 2026-11-20:
+
+- Required: `workspace`, `xolotl-client-key` and `deck-client`. Marking a policy required adds it to every existing
+  selection and applies it.
+- Multi-select group `Operator`: `operator-boblangley` and `operator-iradesa`. A group checks a selection when it is
+  created or edited; it does not change existing ones. Every workspace had at least one when the group was saved.
+- Optional: `homelab-agent`.
+
+A binding value (`xolotl_key_name`, `deck_key`) is the workspace's name, unless the first start of 0.5.0 imported
+another value from the workspace's binding, which Menagerie keeps. On 2026-11-20 every imported value was the
+workspace's name.
+
+Templates are registered in Menagerie's interface and kept in its data volume, not in this repo. On a fresh volume,
+register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template` (at 0.5.0 on 2026-11-20). Its
+interview asks for the Xolotl key policy: answer `devcontainer`, the same as `provisioning.xolotl.key-policy`, as the
+template's post-start check reads the key it names. The Toha default in the volume
+(`toha/config/config.yml`, `template-defaults`) covers only `workspace-template@0.1.0`.
 
 Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
@@ -130,8 +147,10 @@ Onboarding a workspace:
    `deck_keys` entry.
 2. Add the entry to `deck_keys` in `host_vars/wtr-pro.internal.yml` with its grants (bot, server ID, and the IDs of
    the channels it may post in, not of threads; or `["*"]` for the whole server), and Apply; Deck restarts.
-3. Give the workspace's binding policy `deck-client` with value `deck_key: <workspace>`. Its `deck` CLI then works
-   with the client config from the workspace dotfiles: `deck channels` lists what it was granted.
+3. A Menagerie workspace on gtr6 already has policy `deck-client`, as it is required, with value `deck_key` set to
+   its name: check that its row in Menagerie shows the policy applied. Any other binding gets policy `deck-client`
+   with value `deck_key: <workspace>` in Wyrwood. Its `deck` CLI then works with the client config from the
+   workspace dotfiles: `deck channels` lists what it was granted.
 
 ## Cloudflare
 
