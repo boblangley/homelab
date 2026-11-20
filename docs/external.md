@@ -92,10 +92,10 @@ The Policies screen settings, saved on 2026-11-20:
 
 On 2026-11-20 every workspace's binding held the required policies and at least one `Operator` policy, all conforming.
 
-When these settings change: saving a newly required policy adds it to each stored selection and queues an apply job
-for each workspace it changes. The save alone does not show that Wyrwood changed, so check each row for a pending or
-failed apply. A group is enforced when a workspace is created; an edit of an existing selection keeps it, even if it
-has no policy from the group.
+When these settings change: saving a newly required policy adds it to each stored selection, and queues an apply job
+for each changed workspace whose folder exists. The save alone does not show that Wyrwood changed, so check each row
+for a pending or failed apply. A group is enforced when a workspace is created, and an edit cannot leave a complete
+group empty; an existing selection that already lacks a policy from a new group may stay without one through an edit.
 
 Binding values (`xolotl_key_name`, `deck_key`): Menagerie keeps each value its 0.5.0 import took, from the workspace's
 Wyrwood binding or, when it found none, from the workspace's legacy declaration. A value name a workspace does not
