@@ -78,8 +78,14 @@ Controller `wyrwood.internal` (docker-infra); an agent on every Docker host. Bin
 Access groups 1502, 1503 and 1504 are created by role `wyrwood_agent` (`wyrwood_access_groups`); on gtr6 the agent was
 added to `workspaces` by hand.
 
-Policy `deck-client` is opt-in: a workspace that uses Deck adds it to the binding's policies, with value
-`deck_key` set to the workspace's name (in devcontainer.json, `customizations.menagerie.wyrwood`). Its HCL:
+Menagerie chooses each gtr6 workspace's policies (Menagerie's Policies screen; templates no longer declare them).
+Its operator key, `menagerie-gtr6-3` (offered as `menagerie-operator-3`), may read and bind `workspace`,
+`xolotl-client-key`, `deck-client`, `operator-boblangley`, `operator-iradesa` and `homelab-agent` on gtr6; a binding
+holding any other policy is hidden from it. The Policies screen marks `workspace`, `xolotl-client-key` and
+`deck-client` required, and puts `operator-boblangley` and `operator-iradesa` in a multi-select group, so each
+workspace has at least one; `homelab-agent` is optional. Menagerie sets each binding value to the workspace's name.
+
+Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
 ```hcl
 path "transit/keys/deck-{{binding.deck_key}}" { capabilities = ["read"] }
