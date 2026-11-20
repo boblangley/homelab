@@ -11,6 +11,9 @@ openbao:
   approle:
     role-id: {{ wyrd_ids.wyrwood_role_id }}
     secret-id-file: /run/secrets/openbao-secret-id
+  secret-mounts:
+    - path: kv
+      type: kv-v2
 oidc:
   provider-name: Pocket ID
   issuer: https://pocketid.internal
