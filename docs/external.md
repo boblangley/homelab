@@ -103,8 +103,8 @@ have yet takes the workspace's name when it is first needed. On 2026-11-20 every
 
 Templates are registered in Menagerie's interface and kept in its data volume, not in this repo. On a fresh volume,
 register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template@0.6.0`, and check that Validate
-shows version `0.6.0`: without the tag Menagerie takes the newest version. 0.6.0 is the first version made for
-Menagerie 0.5.0: it asks for no Xolotl key policy and declares no policies, and takes its key's address from
+shows version `0.6.0`: without the tag Menagerie takes the newest version. 0.6.0 requires Menagerie 0.5.0 or later:
+it asks for no Xolotl key policy and declares no policies, and takes its key's address from
 `MENAGERIE_XOLOTL_KEY`, which Menagerie sets from `provisioning.xolotl.key-policy`. Earlier versions ask for the key
 policy (answer `devcontainer`).
 
