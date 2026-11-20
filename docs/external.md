@@ -102,11 +102,11 @@ Wyrwood binding or, when it found none, from the workspace's legacy declaration.
 have yet takes the workspace's name when it is first needed. On 2026-11-20 every value was the workspace's name.
 
 Templates are registered in Menagerie's interface and kept in its data volume, not in this repo. On a fresh volume,
-register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template@0.5.0`, and check that Validate
-shows version `0.5.0`: without the tag Menagerie takes the newest version, and later versions ask other questions.
-The 0.5.0 interview asks for the Xolotl key policy: answer `devcontainer`, the same as
-`provisioning.xolotl.key-policy`, as the template's post-start check reads the key it names. The Toha default in the
-volume (`toha/config/config.yml`, `template-defaults`) covers only `workspace-template@0.1.0`.
+register **Workspace**, id `workspace`, address `gh:wyrd-company/workspace-template@0.6.0`, and check that Validate
+shows version `0.6.0`: without the tag Menagerie takes the newest version. 0.6.0 is the first version made for
+Menagerie 0.5.0: it asks for no Xolotl key policy and declares no policies, and takes its key's address from
+`MENAGERIE_XOLOTL_KEY`, which Menagerie sets from `provisioning.xolotl.key-policy`. Earlier versions ask for the key
+policy (answer `devcontainer`).
 
 Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
