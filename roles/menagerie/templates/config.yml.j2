@@ -46,6 +46,9 @@ provisioning:
     operator-key: menagerie-operator-2
   xolotl:
     url: https://xolotl.internal
+    # The policy of each workspace's client key, named devcontainer/<workspace>. Existing workspaces keep the key
+    # imported from their definition.
+    key-policy: devcontainer
     # Where `xolotl keys issue` writes it, so nothing is copied
     key-secret:
       kv-mount: kv
