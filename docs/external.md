@@ -118,8 +118,9 @@ path "transit/sign/deck-{{binding.deck_key}}" { capabilities = ["update"] }
 
 ## ClickHouse SSH queries
 
-From an authenticated OpenBao session, run `fish scripts/openbao/clickhouse-ssh-host.fish`. The script stores
-the server's private host key in OpenBao and prints the public `known_hosts` entry.
+Run `fish scripts/openbao/clickhouse-ssh-host.fish` and enter the OpenBao root token at its prompt. The script
+connects to `https://openbao.internal:8200`, stores the server's private host key, and prints the public
+`known_hosts` entry.
 
 Keep the client key `clickhouse-read` in OpenBao Transit. Give its Wyrwood policy these permissions in the
 `wyrwood` namespace.
