@@ -84,6 +84,13 @@
     mode: "0644"
   notify: Restart ClickHouse
 
+- name: Remove the copied host key when SSH is disabled
+  ansible.builtin.file:
+    path: "{{ clickhouse_dir }}/config.d/ssh_host_ed25519_key"
+    state: absent
+  when: not clickhouse_ssh_enabled
+  notify: Restart ClickHouse
+
 # Password hashes: readable only by the server's uid. Never shown in a diff.
 - name: Write the users
   ansible.builtin.template:
