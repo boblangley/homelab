@@ -15,7 +15,17 @@
         <default remove="remove"/>
 {% for user in clickhouse_users %}
         <{{ user.name }}>
+{% if user.ssh_public_key is defined %}
+{% set key_type, key_blob = user.ssh_public_key.split()[:2] %}
+            <ssh_keys>
+                <ssh_key>
+                    <type>{{ key_type | e }}</type>
+                    <base64_key>{{ key_blob | e }}</base64_key>
+                </ssh_key>
+            </ssh_keys>
+{% else %}
             <password_sha256_hex>{{ clickhouse_passwords[user.name] | hash('sha256') }}</password_sha256_hex>
+{% endif %}
             <networks><ip>::/0</ip></networks>
             <profile>{{ user.profile | default('default') }}</profile>
             <quota>default</quota>

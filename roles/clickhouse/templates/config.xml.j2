@@ -10,6 +10,13 @@
     <interserver_http_port remove="1"/>
     <https_port>8443</https_port>
     <tcp_port_secure>9440</tcp_port_secure>
+{% if clickhouse_ssh_enabled %}
+
+    <tcp_ssh_port>9022</tcp_ssh_port>
+    <ssh_server>
+        <host_ed25519_key>/etc/clickhouse-server/config.d/ssh_host_ed25519_key</host_ed25519_key>
+    </ssh_server>
+{% endif %}
 
     <openSSL>
         <server>

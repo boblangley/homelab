@@ -4,7 +4,7 @@
     clickhouse_passwords: >-
       {{ clickhouse_passwords | default({}) | combine({item.name: lookup('community.hashi_vault.vault_kv2_get',
       'homelab/clickhouse/' ~ item.name, engine_mount_point='kv').secret.password}) }}
-  loop: "{{ clickhouse_users }}"
+  loop: "{{ clickhouse_users | rejectattr('ssh_public_key', 'defined') | list }}"
   loop_control:
     label: "{{ item.name }}"
   delegate_to: localhost
@@ -53,6 +53,18 @@
     owner: root
     group: root
     mode: "0644"
+
+- name: Write the ClickHouse SSH host key from OpenBao
+  ansible.builtin.copy:
+    content: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/clickhouse/ssh-host', engine_mount_point='kv').secret.private_key }}"
+    dest: "{{ clickhouse_dir }}/config.d/ssh_host_ed25519_key"
+    owner: "{{ clickhouse_uid }}"
+    group: "{{ clickhouse_uid }}"
+    mode: "0400"
+  when: clickhouse_ssh_enabled
+  no_log: true
+  diff: false
+  notify: Restart ClickHouse
 
 # Ports and memory settings need a restart.
 - name: Write the server config

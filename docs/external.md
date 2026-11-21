@@ -41,6 +41,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/b2/clickhouse` | `key_id`, `application_key` | `clickhouse` (archive and backups) |
 | `homelab/deck/host` | `private_key`: Deck's SSH host key (`deck-bootstrap.fish`) | Deck, through Wyrwood |
 | `homelab/clickhouse/<user>` | `password` | `clickhouse`, `otel_gateway` (`otel`), `grafana` (`reader`) |
+| `homelab/clickhouse/ssh-host` | `private_key`: ClickHouse's OpenSSH Ed25519 host key | `clickhouse`, when a user has `ssh_public_key` |
 | `homelab/edge` | `opnsense_api_key`, `opnsense_api_secret`, `pihole_password`, `cloudflared_<tunnel>_token` | `edge` |
 | `homelab/grafana` | `admin_password`, `secret_key`, `oidc_client_id`, `oidc_client_secret` | `grafana` |
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
@@ -114,6 +115,42 @@ Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HC
 path "transit/keys/deck-{{binding.deck_key}}" { capabilities = ["read"] }
 path "transit/sign/deck-{{binding.deck_key}}" { capabilities = ["update"] }
 ```
+
+## ClickHouse SSH queries
+
+Provision two Ed25519 keys. Store the service's private host key in OpenBao at `homelab/clickhouse/ssh-host`,
+field `private_key`. Keep the client key `clickhouse-read` in OpenBao Transit. Give its Wyrwood policy these
+permissions in the `wyrwood` namespace.
+
+```hcl
+path "transit/keys/clickhouse-read" { capabilities = ["read"] }
+path "transit/sign/clickhouse-read" { capabilities = ["update"] }
+```
+
+Configure the policy to offer `clickhouse-read` as an SSH agent identity. Allow Menagerie's operator key to
+bind the policy and select it on the workspace that will run queries. After Menagerie applies the workspace
+binding, check that `ssh-add -l` lists `clickhouse-read`.
+
+Add a user to `clickhouse_users` in `host_vars/wtr-pro.internal.yml`. Replace `<OpenSSH public key>` with the
+client key's public line, including its key type. This account reads the two databases the homelab writes to.
+
+```yaml
+- name: ssh_reader
+  ssh_public_key: <OpenSSH public key>
+  profile: readonly
+  grants:
+    - GRANT SELECT ON otel.*
+    - GRANT SELECT ON xolotl.*
+```
+
+Apply. The SSH listener runs on port 9022 inside the homelab overlay. Add the service's public host key to your
+SSH known hosts for `[clickhouse.internal]:9022`. From the authorized workspace, run a query.
+
+```sh
+ssh -p 9022 -o BatchMode=yes -o StrictHostKeyChecking=yes ssh_reader@clickhouse.internal 'SELECT currentUser()'
+```
+
+Expect `ssh_reader`.
 
 ## NATS
 
