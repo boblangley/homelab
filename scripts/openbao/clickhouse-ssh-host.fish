@@ -1,6 +1,17 @@
 #!/usr/bin/env fish
-# Use an authenticated OpenBao session with access to the ClickHouse SSH host key.
+# Provision the ClickHouse SSH host key in OpenBao.
 # Prints the known_hosts entry for clickhouse.internal, reusing the stored key if present.
+
+read --local --silent --prompt-str 'OpenBao root token: ' token
+or exit 1
+test -n "$token"
+or exit 1
+# Override the Wyrwood socket address a devcontainer may inherit.
+set -x BAO_ADDR https://openbao.internal:8200
+set -x BAO_TOKEN "$token"
+set -x VAULT_ADDR $BAO_ADDR
+set -x VAULT_TOKEN "$token"
+set -e token
 
 umask 077
 set -l work (mktemp -d)
