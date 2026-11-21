@@ -2,7 +2,7 @@
 <clickhouse>
     <listen_host>0.0.0.0</listen_host>
 
-    <!-- TLS only: native on 9440, HTTPS on 8443. -->
+    <!-- Native TLS on 9440, HTTPS on 8443, and SSH on 9022 when a user has a key. -->
     <http_port remove="1"/>
     <tcp_port remove="1"/>
     <mysql_port remove="1"/>

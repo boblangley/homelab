@@ -146,11 +146,17 @@ client key's public line, including its key type. This account reads the two dat
     - GRANT SELECT ON xolotl.*
 ```
 
-Apply. The SSH listener runs on port 9022 inside the homelab overlay. Add the printed host key entry to SSH
-known hosts in the authorized workspace, then run a query.
+Apply. The SSH listener runs on port 9022 inside the homelab overlay. ClickHouse also accepts its existing
+password accounts on this port, subject to the same database grants and network restrictions.
+
+In the authorized workspace, add the printed host key entry to `~/.ssh/known_hosts`. Save the public line
+ending in `clickhouse-read` from `ssh-add -L` to `~/.ssh/clickhouse-read.pub`. Select that identity explicitly
+when you connect so that the SSH agent signs with the intended key.
 
 ```sh
-ssh -p 9022 -o BatchMode=yes -o StrictHostKeyChecking=yes ssh_reader@clickhouse.internal 'SELECT currentUser()'
+ssh -p 9022 -o BatchMode=yes -o StrictHostKeyChecking=yes \
+  -o IdentitiesOnly=yes -i ~/.ssh/clickhouse-read.pub \
+  ssh_reader@clickhouse.internal 'SELECT currentUser()'
 ```
 
 Expect `ssh_reader`.
