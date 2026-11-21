@@ -1,7 +1,7 @@
 ---
 # Compose project `clickhouse`: a single ClickHouse server for Xolotl's request data (from NATS) and OpenTelemetry.
 # Only containers reach it, on the homelab overlay as clickhouse.internal; the host publishes no ports. Plaintext
-# ports are off: native protocol over TLS on 9440, HTTPS on 8443.
+# HTTP and native TCP ports are off. Native TLS uses 9440 and HTTPS uses 8443. SSH uses 9022 when a user has a key.
 #
 # TLS: a certificate from OpenBao, kept current by role service_cert.
 #
@@ -19,9 +19,9 @@ clickhouse_name: clickhouse.internal
 # Share of host memory the server may use. Raise it once wtr-pro has more RAM.
 clickhouse_memory_ratio: 0.5
 
-# name, profile (default or readonly), and either grants (GRANT statements, without the TO clause) or
+# name, profile (default or readonly), optional ssh_public_key (an OpenSSH public line), and either grants or
 # access_management: true. ClickHouse rejects a user with both; one with access_management has full access and manages
-# users and grants with SQL.
+# users and grants with SQL. Grant statements omit the TO clause.
 clickhouse_users: []
 
 clickhouse_ssh_enabled: "{{ clickhouse_users | selectattr('ssh_public_key', 'defined') | list | length > 0 }}"
