@@ -5,8 +5,8 @@
 #
 # TLS: a certificate from OpenBao, kept current by role service_cert.
 #
-# Users, their grants and settings profiles are declared here (clickhouse_users); each password is in OpenBao at
-# homelab/clickhouse/<user>, field password. The server gets only SHA-256 hashes, in a root-only file.
+# Users, their grants and settings profiles are declared here (clickhouse_users). Passwords come from OpenBao at
+# homelab/clickhouse/<user>, field password. A user with ssh_public_key uses public-key authentication.
 clickhouse_dir: /opt/docker/clickhouse
 clickhouse_data: /srv/clickhouse
 clickhouse_version: 26.8.37.168
@@ -23,6 +23,8 @@ clickhouse_memory_ratio: 0.5
 # access_management: true. ClickHouse rejects a user with both; one with access_management has full access and manages
 # users and grants with SQL.
 clickhouse_users: []
+
+clickhouse_ssh_enabled: "{{ clickhouse_users | selectattr('ssh_public_key', 'defined') | list | length > 0 }}"
 
 # Days each kind of OpenTelemetry data is kept: traces, logs, metrics. 0 or missing: kept forever. The gateway's
 # exporters create the tables with these TTLs; this role changes the TTL of a table that already exists.
