@@ -29,6 +29,14 @@
   become: false
   no_log: true
 
+- name: Read the ClickHouse SSH host key from OpenBao
+  ansible.builtin.set_fact:
+    clickhouse_ssh_host_key: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/clickhouse/ssh-host', engine_mount_point='kv').secret.private_key }}"
+  when: clickhouse_ssh_enabled
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Create the project directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -54,9 +62,9 @@
     group: root
     mode: "0644"
 
-- name: Write the ClickHouse SSH host key from OpenBao
+- name: Write the ClickHouse SSH host key
   ansible.builtin.copy:
-    content: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/clickhouse/ssh-host', engine_mount_point='kv').secret.private_key }}"
+    content: "{{ clickhouse_ssh_host_key }}"
     dest: "{{ clickhouse_dir }}/config.d/ssh_host_ed25519_key"
     owner: "{{ clickhouse_uid }}"
     group: "{{ clickhouse_uid }}"
