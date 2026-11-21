@@ -14,9 +14,10 @@ set -x VAULT_TOKEN "$token"
 set -e token
 
 umask 077
-set -l work (mktemp -d)
+set -l work (mktemp -d /dev/shm/clickhouse-ssh-host.XXXXXX)
 or exit 1
 function clean_work --on-event fish_exit --inherit-variable work
+    shred -u -- "$work/host" 2>/dev/null
     rm -rf -- "$work"
 end
 
