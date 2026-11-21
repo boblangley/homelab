@@ -28,7 +28,7 @@ nats_streams:
 nats_consumers:
   - { stream: XOLOTL, name: clickhouse }
 
-# ClickHouse users (role clickhouse). Each password is in OpenBao at homelab/clickhouse/<user>, field password.
+# ClickHouse users (role clickhouse). Passwords are in OpenBao at homelab/clickhouse/<user>, field password.
 # admin manages schemas, and the Xolotl tables fed from NATS; otel is the OpenTelemetry gateway's writer; reader is
 # for dashboards and agents.
 clickhouse_users:
@@ -38,6 +38,12 @@ clickhouse_users:
     grants:
       - GRANT ALL ON otel.*
   - name: reader
+    profile: readonly
+    grants:
+      - GRANT SELECT ON otel.*
+      - GRANT SELECT ON xolotl.*
+  - name: ssh_reader
+    ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzqK+Yyd9OJOuXZbh1ZIwfYuSdGJANnR47uUXcFVWzB clickhouse-read
     profile: readonly
     grants:
       - GRANT SELECT ON otel.*
