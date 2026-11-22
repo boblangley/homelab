@@ -191,8 +191,13 @@ Role `deck` runs the service on wtr-pro as `deck.internal:2222` (SSH, on the ove
 application with the Message Content intent, installed in each server with the `bot` scope; in each granted
 channel it needs View Channel, Send Messages, Send Messages in Threads, Create Public Threads, Create Polls, Embed
 Links, Attach Files and Read Message History: permissions integer `563259191184384` in the install link
-`https://discord.com/oauth2/authorize?client_id=<application id>&scope=bot&permissions=563259191184384`. A bot
-missing from the server makes `deck channels` fail with `PermissionDenied`, the same answer as a missing grant.
+`https://discord.com/oauth2/authorize?client_id=<application id>&scope=bot&permissions=563259191184384`. A key's
+missing grant and a bot missing from the server look different:
+
+- `deck channels` leaves out channels the key has no grant for; a post, reply or read in one is refused with
+  `PermissionDenied`.
+- A bot missing from a granted server makes `deck channels` itself fail with `PermissionDenied`: Deck asks Discord
+  for that server's channels, and reports Discord's refusal the same way.
 
 Setting it up, once:
 
