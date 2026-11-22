@@ -29,5 +29,9 @@ nats_streams: {}
 # Each: {stream, name}.
 nats_consumers: []
 
+# Mirror the APP account's GITHUB stream in GITHUB_INGEST and create its ClickHouse consumer there.
+# The account and its credentials are provisioned by scripts/openbao/nats-github-ingest.fish.
+nats_github_mirror: false
+
 # The CLI image that manages streams and consumers, as user admin (its .creds, from OpenBao, root-only on the host).
 nats_box_version: 0.20.2

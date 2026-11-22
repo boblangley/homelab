@@ -10,7 +10,8 @@ accounts_services:
 
 # NATS users (role nats) are user JWTs, each with its permissions, issued outside Ansible: admin, workspace,
 # xolotl (publishes xolotl.exchanges.>), clickhouse (consumes XOLOTL), trowel (publishes github.>), deck (its own
-# stream DECK and bucket deck-threads). Their .creds are in OpenBao at homelab/nats/<user>.
+# stream DECK and bucket deck-threads), and github-admin and clickhouse-github in account GITHUB_INGEST.
+# Their .creds are in OpenBao at homelab/nats/<user>.
 
 # Xolotl's exchanges, with request and response bodies (50-150 KB a row), wait here until ClickHouse loads them.
 nats_streams:
@@ -27,11 +28,11 @@ nats_streams:
     max_msg_mib: 8
 nats_consumers:
   - { stream: XOLOTL, name: clickhouse }
-  - { stream: GITHUB, name: clickhouse }
+# The GITHUB mirror and its clickhouse consumer live in GITHUB_INGEST, outside APP's shared inbox.
+nats_github_mirror: true
 
 # ClickHouse users (role clickhouse). Passwords are in OpenBao at homelab/clickhouse/<user>, field password.
-# admin manages schemas, and the Xolotl tables fed from NATS; otel is the OpenTelemetry gateway's writer; reader is
-# for dashboards and agents.
+# admin manages schemas and can read github.webhooks. The dashboard and agent readers get OTel and Xolotl data.
 clickhouse_users:
   - name: admin
     access_management: true
@@ -66,7 +67,7 @@ clickhouse_b2_endpoint: https://s3.us-west-004.backblazeb2.com
 
 # Xolotl's tables, loaded from NATS stream XOLOTL. No TTL: kept until decided otherwise.
 clickhouse_xolotl: true
-# GitHub webhook bodies and subject metadata, loaded from NATS stream GITHUB.
+# GitHub webhook bodies and subject metadata, loaded from the GITHUB mirror.
 clickhouse_github: true
 
 # ntfy (role ntfy), through the wyrd Cloudflare tunnel. Users: an admin, homelab and workspaces; their hashes and

@@ -14,6 +14,14 @@
   become: false
   no_log: true
 
+- name: Read the GitHub JetStream administrator credentials from OpenBao
+  ansible.builtin.set_fact:
+    nats_github_admin_creds: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/github-admin', engine_mount_point='kv').secret.creds }}"
+  when: nats_github_mirror
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Create the project directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -103,6 +111,17 @@
   ansible.builtin.file:
     path: "{{ nats_dir }}/admin.nk"
     state: absent
+
+- name: Write the GitHub JetStream administrator credentials
+  ansible.builtin.copy:
+    content: "{{ nats_github_admin_creds }}"
+    dest: "{{ nats_dir }}/github-admin.creds"
+    owner: root
+    group: root
+    mode: "0400"
+  when: nats_github_mirror
+  no_log: true
+  diff: false
 
 - name: Write the stream and consumer script
   ansible.builtin.template:

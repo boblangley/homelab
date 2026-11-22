@@ -286,6 +286,14 @@
     - clickhouse_github_tables is not skipped
     - clickhouse_github_tables.stdout | int < 3
 
+- name: Verify the GitHub mirror and its ClickHouse consumer
+  ansible.builtin.command:
+    argv:
+      - "{{ clickhouse_github_jetstream_script }}"
+      - --verify-github-ingest
+  changed_when: false
+  when: clickhouse_github
+
 - name: Write the archive and backup units
   ansible.builtin.template:
     src: "{{ item }}.j2"

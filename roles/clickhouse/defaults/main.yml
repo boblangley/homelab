@@ -60,4 +60,6 @@ clickhouse_xolotl: false
 # GitHub's webhooks (database github), loaded from NATS stream GITHUB through consumer clickhouse, as NATS user
 # clickhouse-github (its .creds in OpenBao at homelab/nats/clickhouse-github).
 clickhouse_github: false
+# The NATS role runs on the same host and installs this script to manage and check the mirror's consumer.
+clickhouse_github_jetstream_script: /opt/docker/nats/jetstream
 clickhouse_nats_url: nats.internal:4222

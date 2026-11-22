@@ -49,7 +49,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
 | `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
 | `homelab/nats/server` | `resolver`: operator and account JWTs | `nats` |
-| `homelab/nats/<user>` | `creds` | `nats` (`admin`), `clickhouse` (`clickhouse`, `clickhouse-github`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
+| `homelab/nats/<user>` | `creds` | `nats` (`admin`, `github-admin`), `clickhouse` (`clickhouse`, `clickhouse-github`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
 | `homelab/ntfy` | `auth_users`, `auth_tokens` | ntfy's sidecar, through Wyrwood |
 | `homelab/ntfy/<admin>` | `password` | the ntfy admin, for the ntfy apps |
 | `homelab/ntfy/homelab` | `token` | publishers of topic `homelab` |
@@ -172,12 +172,16 @@ user JWT:
 | `workspace` | anything | anything |
 | `xolotl` | `xolotl.exchanges.>`, `$JS.API.STREAM.INFO.XOLOTL` | `_INBOX.>` |
 | `clickhouse` | the `XOLOTL` consumer `clickhouse`'s API and acks | `_INBOX.>` |
-| `clickhouse-github` | the `GITHUB` consumer `clickhouse`'s API and acks | `_INBOX.>` |
 | `trowel` | `github.>` | `_INBOX.>` |
 | `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
 
 Streams and consumers are declared in `host_vars` and kept by role `nats`, except Deck's stream `DECK` and bucket
 `deck-threads`, which Deck creates and corrects itself at start.
+
+The account `GITHUB_INGEST` has its own mirror of `APP`'s `GITHUB` stream. Its private imports cover GitHub mirror setup,
+delivery, and flow control. ClickHouse pulls from the mirror, so those payload replies stay within `GITHUB_INGEST`.
+The `github-admin` user manages the mirror and its consumer. The `clickhouse-github` user can use that consumer's
+pull API and acknowledgements, read its stream and consumer info, and subscribe to replies in `_INBOX.>`.
 
 ## Deck
 
@@ -235,20 +239,25 @@ rules:
 
 ### Load webhooks into ClickHouse
 
-Before the first Apply with `clickhouse_github` enabled, issue the NATS user and let the runner's Wyrwood policy
-`homelab-runner` read `kv/data/homelab/nats/clickhouse-github`.
+Before merging, run this from an operator workstation to create the ingestion account and its two NATS users.
+The script updates the NATS resolver and uses the existing account and keys when retried.
 
 ```sh
-fish scripts/openbao/nats-user.fish clickhouse-github \
-  --pub '$JS.API.CONSUMER.MSG.NEXT.GITHUB.clickhouse,$JS.API.CONSUMER.INFO.GITHUB.clickhouse,$JS.API.STREAM.INFO.GITHUB,$JS.ACK.GITHUB.clickhouse.>' \
-  --sub '_INBOX.>'
+fish scripts/openbao/nats-github-ingest.fish
 ```
 
-Apply creates the durable pull consumer and the ClickHouse tables. The consumer starts with the oldest webhook
-still in the `GITHUB` stream. ClickHouse keeps the raw JSON body and the subject's owner, repository, event and
-action tokens in `github.webhooks` without a TTL. `ingested_at` records when ClickHouse processes the delivery.
+Grant the Apply runner's `homelab-runner` Wyrwood policy read access to `kv/data/homelab/nats/github-admin` and
+`kv/data/homelab/nats/clickhouse-github`. Run Apply on the PR branch with `preview` enabled to check the runner's
+access before merging.
 
-Check for rows as the ClickHouse admin after GitHub has sent an event.
+Apply restarts NATS with the updated resolver, creates the mirror and its durable pull consumer, and checks activity
+on both the mirror and the ClickHouse consumer. The mirror starts with the oldest retained webhook in `APP` and uses
+the same retention limits. ClickHouse keeps the raw JSON body and the subject's owner, repository, event and action in `github.webhooks`
+without a TTL. Trowel encodes dots in subject tokens as `_dot_` and uses `none` for missing tokens. The JSON body
+preserves the original values. `ingested_at` records when ClickHouse processes the delivery.
+
+Query `github.webhooks` as the ClickHouse admin after GitHub sends an event. Only the admin has access because webhook
+bodies can contain private repository data.
 
 ```sql
 SELECT ingested_at, owner, repo, event, action
