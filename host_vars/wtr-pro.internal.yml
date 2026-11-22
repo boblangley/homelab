@@ -94,6 +94,14 @@ deck_bots:
 
 # Deck's clients: one entry per workspace, from scripts/openbao/deck-client.fish, with its grants.
 deck_keys:
+  - name: airlock
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDqUmwddZu7veDwkupqeUqMVRpG362DtCYcKU7jjTvlU deck:deck-airlock
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels:
+          - "1573967285054345226" # chat
+          - "1573967342235553924" # forum
   - name: alignment
     public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ0VTwOzkiuT7cUviJX4l1YfYaKDD4j/D1Si82zON9he deck:deck-alignment
     grants:
@@ -102,6 +110,14 @@ deck_keys:
         channels:
           - "1572630018822115539" # text
           - "1569972914604740680" # forum
+  - name: kaizen
+    public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL4XBN5UemDl6RQ1KGMd++1QNSUcL0w0oOI5OMrPHvCA deck:deck-kaizen
+    grants:
+      - bot: wyrdbot
+        server: "1400937960475725824"
+        channels:
+          - "1573967248811495424" # chat
+          - "1573967198286913556" # forum
   - name: refinery
     public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBq1Efyn5jtB/1FxOV/oE9o91d+2GgkJxmX3BUr9/rYK deck:deck-refinery
     grants:
