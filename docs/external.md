@@ -176,7 +176,9 @@ user JWT:
 | `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, `$JS.API.INFO`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
 
 To widen a user, `nats-user.fish <user> --update --pub ... --sub ...` adds subjects to its allow lists and issues a
-new JWT for the same key; restart the service that uses it. It only adds, and it refuses a direction with no allow
+new JWT for the same key, written to `homelab/nats/<user>`. The service then needs it: Deck and Trowel read it at
+start (restart them); ClickHouse gets a copy at Apply (Apply). Xolotl doesn't read `homelab/nats/xolotl` but its own
+`xolotl/nats`, so copy the new creds there and restart it. It only adds, and it refuses a direction with no allow
 list (`admin` and `workspace`), where adding would restrict the user. Removing a subject means revoking the old JWT
 (`nsc revocations`).
 

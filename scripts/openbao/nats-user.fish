@@ -18,7 +18,8 @@
 
 argparse 'pub=' 'sub=' update -- $argv; or exit 2
 set name $argv[1]
-if not string match --quiet --regex '^[a-z][a-z0-9_-]{0,62}$' -- "$name"
+# One name and nothing else: a stray word (an unquoted second subject, say) is refused, not dropped.
+if test (count $argv) -ne 1; or not string match --quiet --regex '^[a-z][a-z0-9_-]{0,62}$' -- "$name"
     echo "usage: fish scripts/openbao/nats-user.fish <name> [--update] [--pub SUBJECTS] [--sub SUBJECTS]"
     exit 2
 end
