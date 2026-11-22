@@ -4,10 +4,10 @@
 #
 # TLS: a certificate from OpenBao, kept current by role service_cert.
 #
-# Operator (JWT) mode: operator homelab, accounts SYS and APP (JetStream). Every user logs in with a .creds file (a user
-# JWT, which holds its permissions, and its seed), in OpenBao at homelab/nats/<user>, field creds. The server gets only
-# the operator and account JWTs (homelab/nats/server, field resolver), preloaded with a memory resolver. Users are
-# issued with nsc from the stores in homelab/nats/nsc, outside Ansible.
+# Operator homelab uses accounts SYS, APP and GITHUB_INGEST, with JetStream enabled in APP and GITHUB_INGEST.
+# The .creds file for each user comes from the creds field at homelab/nats/<user>. The server preloads the operator
+# and account JWTs from the resolver field at homelab/nats/server. Users are issued with nsc from the stores in
+# homelab/nats/nsc, outside Ansible.
 nats_dir: /opt/docker/nats
 nats_data: /srv/nats
 nats_version: 2.15.3-alpine
@@ -28,6 +28,10 @@ nats_streams: {}
 # Durable pull consumers, created when missing (deliver all, explicit ack, 30s ack wait, no delivery limit).
 # Each: {stream, name}.
 nats_consumers: []
+
+# Mirror the APP account's GITHUB stream in GITHUB_INGEST and create its ClickHouse consumer there.
+# The account and its credentials are provisioned by scripts/openbao/nats-github-ingest.fish.
+nats_github_mirror: false
 
 # The CLI image that manages streams and consumers, as user admin (its .creds, from OpenBao, root-only on the host).
 nats_box_version: 0.20.2

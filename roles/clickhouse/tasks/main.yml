@@ -29,6 +29,14 @@
   become: false
   no_log: true
 
+- name: Read NATS user clickhouse-github's credentials from OpenBao
+  ansible.builtin.set_fact:
+    clickhouse_github_nats_creds: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/nats/clickhouse-github', engine_mount_point='kv').secret.creds }}"
+  when: clickhouse_github
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Read the ClickHouse SSH host key from OpenBao
   ansible.builtin.set_fact:
     clickhouse_ssh_host_key: "{{ lookup('community.hashi_vault.vault_kv2_get', 'homelab/clickhouse/ssh-host', engine_mount_point='kv').secret.private_key }}"
@@ -128,6 +136,28 @@
   diff: false
   notify: Restart ClickHouse
 
+- name: Write the GitHub NATS credentials
+  ansible.builtin.copy:
+    content: "{{ clickhouse_github_nats_creds }}"
+    dest: "{{ clickhouse_dir }}/nats/clickhouse-github.creds"
+    owner: "{{ clickhouse_uid }}"
+    group: "{{ clickhouse_uid }}"
+    mode: "0400"
+  when: clickhouse_github
+  no_log: true
+  diff: false
+  notify: Restart ClickHouse
+
+- name: Configure the GitHub NATS connection
+  ansible.builtin.template:
+    src: nats-github.xml.j2
+    dest: "{{ clickhouse_dir }}/config.d/nats-github.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  when: clickhouse_github
+  notify: Restart ClickHouse
+
 # No diff: the version before the .creds file had the NATS password, and a diff shows the old file.
 - name: Write the NATS login
   ansible.builtin.template:
@@ -148,6 +178,15 @@
     group: root
     mode: "0644"
   when: clickhouse_xolotl
+
+- name: Write the GitHub webhook schema
+  ansible.builtin.template:
+    src: github.sql.j2
+    dest: "{{ clickhouse_dir }}/github.sql"
+    owner: root
+    group: root
+    mode: "0644"
+  when: clickhouse_github
 
 - name: Keep the TLS certificate current
   ansible.builtin.include_role:
@@ -217,6 +256,43 @@
     - clickhouse_xolotl
     - clickhouse_xolotl_tables is not skipped
     - clickhouse_xolotl_tables.stdout | int < 5
+
+- name: Check the GitHub webhook tables
+  ansible.builtin.command: >-
+    docker exec -e CLICKHOUSE_PASSWORD clickhouse clickhouse-client --secure --host 127.0.0.1 --port 9440
+    --accept-invalid-certificate --user admin
+    --query "SELECT count() FROM system.tables WHERE database = 'github'
+    AND name IN ('webhooks', 'webhooks_queue', 'webhooks_mv')"
+  environment:
+    CLICKHOUSE_PASSWORD: "{{ clickhouse_passwords.admin }}"
+  register: clickhouse_github_tables
+  changed_when: false
+  check_mode: false
+  no_log: true
+  when:
+    - clickhouse_github
+    - not (ansible_check_mode and clickhouse_dirs is changed)
+
+- name: Create the GitHub webhook tables
+  ansible.builtin.shell: >-
+    docker exec -i -e CLICKHOUSE_PASSWORD clickhouse clickhouse-client --secure --host 127.0.0.1 --port 9440
+    --accept-invalid-certificate --user admin --multiquery < {{ clickhouse_dir }}/github.sql
+  environment:
+    CLICKHOUSE_PASSWORD: "{{ clickhouse_passwords.admin }}"
+  changed_when: true
+  no_log: true
+  when:
+    - clickhouse_github
+    - clickhouse_github_tables is not skipped
+    - clickhouse_github_tables.stdout | int < 3
+
+- name: Verify the GitHub mirror and its ClickHouse consumer
+  ansible.builtin.command:
+    argv:
+      - "{{ clickhouse_github_jetstream_script }}"
+      - --verify-github-ingest
+  changed_when: false
+  when: clickhouse_github
 
 - name: Write the archive and backup units
   ansible.builtin.template:

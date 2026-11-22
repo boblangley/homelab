@@ -47,9 +47,9 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
 | `homelab/identity` | `encryption_key` | `identity` |
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
-| `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
+| `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish`, `nats-github-ingest.fish` |
 | `homelab/nats/server` | `resolver`: operator and account JWTs | `nats` |
-| `homelab/nats/<user>` | `creds` | `nats` (`admin`), `clickhouse` (`clickhouse`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
+| `homelab/nats/<user>` | `creds` | `nats` (`admin`, `github-admin`), `clickhouse` (`clickhouse`, `clickhouse-github`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
 | `homelab/ntfy` | `auth_users`, `auth_tokens` | ntfy's sidecar, through Wyrwood |
 | `homelab/ntfy/<admin>` | `password` | the ntfy admin, for the ntfy apps |
 | `homelab/ntfy/homelab` | `token` | publishers of topic `homelab` |
@@ -163,8 +163,8 @@ Expect `ssh_reader`.
 
 ## NATS
 
-Operator `homelab`; accounts `SYS` and `APP` (JetStream, unlimited). Users in `APP`, each with its permissions in its
-user JWT:
+The `homelab` operator has accounts `SYS`, `APP`, and `GITHUB_INGEST`. `APP` and `GITHUB_INGEST` have JetStream
+enabled. Each `APP` user has permissions in its JWT.
 
 | User | Publishes | Subscribes |
 | --- | --- | --- |
@@ -177,6 +177,11 @@ user JWT:
 
 Streams and consumers are declared in `host_vars` and kept by role `nats`, except Deck's stream `DECK` and bucket
 `deck-threads`, which Deck creates and corrects itself at start.
+
+The account `GITHUB_INGEST` has its own mirror of `APP`'s `GITHUB` stream. Its private imports cover GitHub mirror setup,
+delivery, and flow control. ClickHouse pulls from the mirror, so those payload replies stay within `GITHUB_INGEST`.
+The `github-admin` user manages the mirror and its consumer. The `clickhouse-github` user can use that consumer's
+pull API and acknowledgements, read its stream and consumer info, and subscribe to replies in `_INBOX.>`.
 
 ## Deck
 
@@ -231,6 +236,39 @@ rules:
 - Organization `wyrd-company`: a webhook to `https://hooks.wyrd.team/github/wyrd-company`, JSON, signed with
   `homelab/trowel/github/wyrd-company`.
 - The runner's GitHub App: its key is Transit `gh-app-homelab-runner`, its ID and login in `homelab/runner`.
+
+### Load webhooks into ClickHouse
+
+Before merging, run this from an operator workstation to create the ingestion account and its two NATS users.
+The script updates the NATS resolver and uses the existing account and keys when retried.
+
+```sh
+fish scripts/openbao/nats-github-ingest.fish
+```
+
+Grant the Apply runner's `homelab-runner` Wyrwood policy read access to `kv/data/homelab/nats/github-admin` and
+`kv/data/homelab/nats/clickhouse-github`. Run Apply on the PR branch with `preview` enabled to check the runner's
+access before merging.
+
+The first non-preview Apply after provisioning restarts NATS with the updated resolver, even if an unrelated merge
+triggers it. Once this change merges, Apply creates the mirror and its durable pull consumer and checks activity on
+both. If the check fails, Apply skips later plays on wtr-pro. To run those plays while investigating, run the
+playbook from a workstation with `--extra-vars '{"clickhouse_github": false}'`.
+
+The mirror starts with the oldest retained webhook in `APP` and uses the same retention limits. ClickHouse keeps
+the raw JSON body and the subject's owner, repository, event and action in `github.webhooks` without a TTL.
+Trowel encodes dots in subject tokens as `_dot_` and uses `none` for missing tokens. The JSON body preserves the
+original values. `ingested_at` records when ClickHouse processes the delivery.
+
+Query `github.webhooks` as the ClickHouse admin after GitHub sends an event. Only the admin has access because webhook
+bodies can contain private repository data.
+
+```sql
+SELECT ingested_at, owner, repo, event, action
+FROM github.webhooks
+ORDER BY ingested_at DESC
+LIMIT 10;
+```
 
 ## Pocket ID
 

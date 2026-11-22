@@ -1,5 +1,5 @@
 ---
-# Compose project `clickhouse`: a single ClickHouse server for Xolotl's request data (from NATS) and OpenTelemetry.
+# Compose project `clickhouse`: a single ClickHouse server for OpenTelemetry and for Xolotl and GitHub data from NATS.
 # Only containers reach it, on the homelab overlay as clickhouse.internal; the host publishes no ports. Plaintext
 # HTTP and native TCP ports are off. Native TLS uses 9440 and HTTPS uses 8443. SSH uses 9022 when a user has a key.
 #
@@ -56,4 +56,10 @@ clickhouse_backup_at: "*-*-* 02:30"
 # Xolotl's tables (database xolotl), loaded from NATS stream XOLOTL through consumer clickhouse, as NATS user
 # clickhouse (its .creds in OpenBao at homelab/nats/clickhouse). Off when false.
 clickhouse_xolotl: false
+
+# GitHub's webhooks (database github), loaded from NATS stream GITHUB through consumer clickhouse, as NATS user
+# clickhouse-github (its .creds in OpenBao at homelab/nats/clickhouse-github).
+clickhouse_github: false
+# The NATS role runs on the same host and installs this script to manage and check the mirror's consumer.
+clickhouse_github_jetstream_script: /opt/docker/nats/jetstream
 clickhouse_nats_url: nats.internal:4222

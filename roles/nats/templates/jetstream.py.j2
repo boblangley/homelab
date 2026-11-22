@@ -1,39 +1,63 @@
 #!/usr/bin/env python3
 # Managed by Ansible (homelab repo, role nats).
-# Creates the JetStream streams and consumers in account APP, and edits a stream whose settings differ. Prints one
-# line per change. --check: only print what would change.
-import json, subprocess, sys
+# Reconciles JetStream streams and consumers. --check only prints what would change.
+import json, subprocess, sys, time
 
 STREAMS = {{ nats_streams | to_json }}
 CONSUMERS = {{ nats_consumers | to_json }}
+GITHUB_MIRROR = {{ nats_github_mirror | bool }}
 CHECK = "--check" in sys.argv[1:]
 
-def nats(*args):
+def nats(*args, user="admin", config=None):
     cmd = ["docker", "run", "--rm", "--network", "homelab",
-           "-v", "{{ nats_dir }}/admin.creds:/admin.creds:ro",
+           "-v", f"{{ nats_dir }}/{user}.creds:/admin.creds:ro",
            "-v", "/etc/ssl/certs/ca-certificates.crt:/ca.crt:ro",
-           "natsio/nats-box:{{ nats_box_version }}",
+           *(["-i"] if config is not None else []), "natsio/nats-box:{{ nats_box_version }}",
            "nats", "--server", "tls://{{ nats_name }}:4222", "--tlsca", "/ca.crt", "--creds", "/admin.creds", *args]
-    return subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, input=config, capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(f"{user}: {' '.join(args[:4])}: {result.stderr.strip()}")
+    return result.stdout
 
-def names(kind, *parent):
-    r = nats(kind, "ls", *parent, "--names")
-    if r.returncode != 0:
-        sys.exit(f"{kind} ls {' '.join(parent)}: {r.stderr.strip()}")
-    return r.stdout.split()
+def names(kind, *parent, user="admin"):
+    return nats(kind, "ls", *parent, "--names", user=user).split()
 
-def info(kind, *path):
-    r = nats(kind, "info", *path, "--json")
-    if r.returncode != 0:
-        sys.exit(f"{kind} info {' '.join(path)}: {r.stderr.strip()}")
-    return json.loads(r.stdout)["config"]
+def info(kind, *path, user="admin"):
+    return json.loads(nats(kind, "info", *path, "--json", user=user))
 
-def run(*args):
-    if CHECK:
-        return
-    r = nats(*args)
-    if r.returncode != 0:
-        sys.exit(f"{' '.join(args[:3])}: {r.stderr.strip()}")
+def run(*args, **kwargs):
+    if not CHECK:
+        nats(*args, **kwargs)
+
+def create_consumer(stream, name, user="admin"):
+    run("consumer", "add", stream, name, "--pull", "--deliver", "all", "--ack", "explicit",
+        "--wait", "30s", "--max-deliver=-1", "--defaults", user=user)
+    print(f"created consumer {stream}/{name} ({user})")
+
+def verify_github_ingest():
+    # During backlog replay, the ack floor can advance even if no pull is waiting at the instant we sample.
+    deadline = time.monotonic() + 30
+    initial_ack = None
+    pull_seen = False
+    while time.monotonic() < deadline:
+        status = info("consumer", "GITHUB", "clickhouse", user="github-admin")
+        ack = status["ack_floor"]["consumer_seq"]
+        if status["num_waiting"] > 0 or (initial_ack is not None and ack > initial_ack):
+            pull_seen = True
+            mirror = info("stream", "GITHUB", user="github-admin").get("mirror") or {}
+            # JetStream reports nanoseconds since the last source activity, or -1 before first contact.
+            if not mirror.get("error") and 0 <= mirror.get("active", -1) < 10 * 10**9:
+                return
+        if initial_ack is None:
+            initial_ack = ack
+        time.sleep(2)
+    if pull_seen:
+        sys.exit("GITHUB_INGEST GITHUB is not receiving heartbeats or messages from APP. Check the mirror's imports.")
+    sys.exit("GITHUB_INGEST GITHUB/clickhouse has no waiting pull or new acknowledgement. Check ClickHouse's GitHub NATS connection.")
+
+if sys.argv[1:] == ["--verify-github-ingest"]:
+    verify_github_ingest()
+    sys.exit(0)
 
 existing_streams = names("stream")
 for name, s in STREAMS.items():
@@ -51,13 +75,37 @@ for name, s in STREAMS.items():
         run("stream", "add", name, *flags, "--storage", "file", "--retention", "limits", "--discard", "old",
             "--replicas", "1", "--defaults")
         print(f"created stream {name}")
-    elif any(info("stream", name).get(k) != v for k, v in want.items()):
-        run("stream", "edit", name, *flags, "--force")
-        print(f"edited stream {name}")
+    else:
+        have = info("stream", name)["config"]
+        if any(have.get(k) != v for k, v in want.items()):
+            run("stream", "edit", name, *flags, "--force")
+            print(f"edited stream {name}")
 
 for c in CONSUMERS:
     # In a preview, a stream that would be created has no consumers yet.
     if c["stream"] not in existing_streams or c["name"] not in names("consumer", c["stream"]):
-        run("consumer", "add", c["stream"], c["name"], "--pull", "--deliver", "all", "--ack", "explicit",
-            "--wait", "30s", "--max-deliver=-1", "--defaults")
-        print(f"created consumer {c['stream']}/{c['name']}")
+        create_consumer(c["stream"], c["name"])
+
+if GITHUB_MIRROR:
+    user = "github-admin"
+    source = STREAMS["GITHUB"]
+    mirror = {
+        "name": "GITHUB",
+        "storage": "file",
+        "retention": "limits",
+        "max_age": source["max_age_days"] * 86400 * 10**9,
+        "max_bytes": source["max_gib"] * 2**30,
+        "max_msg_size": source["max_msg_mib"] * 2**20,
+        "mirror": {"name": "GITHUB", "external": {"api": "APP.GITHUB.API", "deliver": "github-mirror"}},
+    }
+    if "GITHUB" not in names("stream", user=user):
+        run("stream", "add", "--config", "/dev/stdin", user=user, config=json.dumps(mirror))
+        print("created mirror GITHUB in GITHUB_INGEST")
+        create_consumer("GITHUB", "clickhouse", user=user)
+    else:
+        have = info("stream", "GITHUB", user=user)["config"]
+        if any(have.get(key) != value for key, value in mirror.items()):
+            run("stream", "edit", "GITHUB", "--config", "/dev/stdin", "--force", user=user, config=json.dumps(mirror))
+            print("edited mirror GITHUB in GITHUB_INGEST")
+        if "clickhouse" not in names("consumer", "GITHUB", user=user):
+            create_consumer("GITHUB", "clickhouse", user=user)
