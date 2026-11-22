@@ -47,7 +47,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
 | `homelab/identity` | `encryption_key` | `identity` |
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
-| `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
+| `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish`, `nats-github-ingest.fish` |
 | `homelab/nats/server` | `resolver`: operator and account JWTs | `nats` |
 | `homelab/nats/<user>` | `creds` | `nats` (`admin`, `github-admin`), `clickhouse` (`clickhouse`, `clickhouse-github`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
 | `homelab/ntfy` | `auth_users`, `auth_tokens` | ntfy's sidecar, through Wyrwood |
@@ -163,8 +163,8 @@ Expect `ssh_reader`.
 
 ## NATS
 
-Operator `homelab`; accounts `SYS` and `APP` (JetStream, unlimited). Users in `APP`, each with its permissions in its
-user JWT:
+The `homelab` operator has accounts `SYS`, `APP`, and `GITHUB_INGEST`. `APP` and `GITHUB_INGEST` have JetStream
+enabled. Each `APP` user has permissions in its JWT.
 
 | User | Publishes | Subscribes |
 | --- | --- | --- |
@@ -250,11 +250,15 @@ Grant the Apply runner's `homelab-runner` Wyrwood policy read access to `kv/data
 `kv/data/homelab/nats/clickhouse-github`. Run Apply on the PR branch with `preview` enabled to check the runner's
 access before merging.
 
-Apply restarts NATS with the updated resolver, creates the mirror and its durable pull consumer, and checks activity
-on both the mirror and the ClickHouse consumer. The mirror starts with the oldest retained webhook in `APP` and uses
-the same retention limits. ClickHouse keeps the raw JSON body and the subject's owner, repository, event and action in `github.webhooks`
-without a TTL. Trowel encodes dots in subject tokens as `_dot_` and uses `none` for missing tokens. The JSON body
-preserves the original values. `ingested_at` records when ClickHouse processes the delivery.
+The first non-preview Apply after provisioning restarts NATS with the updated resolver, even if an unrelated merge
+triggers it. Once this change merges, Apply creates the mirror and its durable pull consumer and checks activity on
+both. If the check fails, Apply skips later plays on wtr-pro. To run those plays while investigating, run the
+playbook from a workstation with `--extra-vars '{"clickhouse_github": false}'`.
+
+The mirror starts with the oldest retained webhook in `APP` and uses the same retention limits. ClickHouse keeps
+the raw JSON body and the subject's owner, repository, event and action in `github.webhooks` without a TTL.
+Trowel encodes dots in subject tokens as `_dot_` and uses `none` for missing tokens. The JSON body preserves the
+original values. `ingested_at` records when ClickHouse processes the delivery.
 
 Query `github.webhooks` as the ClickHouse admin after GitHub sends an event. Only the admin has access because webhook
 bodies can contain private repository data.
