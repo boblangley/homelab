@@ -27,6 +27,7 @@ nats_streams:
     max_msg_mib: 8
 nats_consumers:
   - { stream: XOLOTL, name: clickhouse }
+  - { stream: GITHUB, name: clickhouse }
 
 # ClickHouse users (role clickhouse). Passwords are in OpenBao at homelab/clickhouse/<user>, field password.
 # admin manages schemas, and the Xolotl tables fed from NATS; otel is the OpenTelemetry gateway's writer; reader is
@@ -65,6 +66,8 @@ clickhouse_b2_endpoint: https://s3.us-west-004.backblazeb2.com
 
 # Xolotl's tables, loaded from NATS stream XOLOTL. No TTL: kept until decided otherwise.
 clickhouse_xolotl: true
+# GitHub webhook bodies and subject metadata, loaded from NATS stream GITHUB.
+clickhouse_github: true
 
 # ntfy (role ntfy), through the wyrd Cloudflare tunnel. Users: an admin, homelab and workspaces; their hashes and
 # tokens are in OpenBao at homelab/ntfy. The tokens publish only to their own topic.

@@ -1,0 +1,10 @@
+<!-- Managed by Ansible (homelab repo, role clickhouse). -->
+<clickhouse>
+    <named_collections>
+        <github_webhooks>
+            <nats_url overridable="false">{{ clickhouse_nats_url | e }}</nats_url>
+            <nats_secure overridable="false">1</nats_secure>
+            <nats_credential_file overridable="false">/etc/clickhouse-server/nats/clickhouse-github.creds</nats_credential_file>
+        </github_webhooks>
+    </named_collections>
+</clickhouse>

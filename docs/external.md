@@ -49,7 +49,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
 | `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
 | `homelab/nats/server` | `resolver`: operator and account JWTs | `nats` |
-| `homelab/nats/<user>` | `creds` | `nats` (`admin`), `clickhouse` (`clickhouse`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
+| `homelab/nats/<user>` | `creds` | `nats` (`admin`), `clickhouse` (`clickhouse`, `clickhouse-github`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
 | `homelab/ntfy` | `auth_users`, `auth_tokens` | ntfy's sidecar, through Wyrwood |
 | `homelab/ntfy/<admin>` | `password` | the ntfy admin, for the ntfy apps |
 | `homelab/ntfy/homelab` | `token` | publishers of topic `homelab` |
@@ -172,6 +172,7 @@ user JWT:
 | `workspace` | anything | anything |
 | `xolotl` | `xolotl.exchanges.>`, `$JS.API.STREAM.INFO.XOLOTL` | `_INBOX.>` |
 | `clickhouse` | the `XOLOTL` consumer `clickhouse`'s API and acks | `_INBOX.>` |
+| `clickhouse-github` | the `GITHUB` consumer `clickhouse`'s API and acks | `_INBOX.>` |
 | `trowel` | `github.>` | `_INBOX.>` |
 | `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
 
@@ -231,6 +232,30 @@ rules:
 - Organization `wyrd-company`: a webhook to `https://hooks.wyrd.team/github/wyrd-company`, JSON, signed with
   `homelab/trowel/github/wyrd-company`.
 - The runner's GitHub App: its key is Transit `gh-app-homelab-runner`, its ID and login in `homelab/runner`.
+
+### Load webhooks into ClickHouse
+
+Before the first Apply with `clickhouse_github` enabled, issue the NATS user and let the runner's Wyrwood policy
+`homelab-runner` read `kv/data/homelab/nats/clickhouse-github`.
+
+```sh
+fish scripts/openbao/nats-user.fish clickhouse-github \
+  --pub '$JS.API.CONSUMER.MSG.NEXT.GITHUB.clickhouse,$JS.API.CONSUMER.INFO.GITHUB.clickhouse,$JS.API.STREAM.INFO.GITHUB,$JS.ACK.GITHUB.clickhouse.>' \
+  --sub '_INBOX.>'
+```
+
+Apply creates the durable pull consumer and the ClickHouse tables. The consumer starts with the oldest webhook
+still in the `GITHUB` stream. ClickHouse keeps the raw JSON body and the subject's owner, repository, event and
+action tokens in `github.webhooks` without a TTL. `ingested_at` records when ClickHouse processes the delivery.
+
+Check for rows as the ClickHouse admin after GitHub has sent an event.
+
+```sql
+SELECT ingested_at, owner, repo, event, action
+FROM github.webhooks
+ORDER BY ingested_at DESC
+LIMIT 10;
+```
 
 ## Pocket ID
 

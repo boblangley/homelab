@@ -1,0 +1,37 @@
+-- Managed by Ansible (homelab repo, role clickhouse).
+CREATE DATABASE IF NOT EXISTS github;
+
+CREATE TABLE IF NOT EXISTS github.webhooks (
+    ingested_at DateTime64(3, 'UTC'),
+    subject LowCardinality(String),
+    owner LowCardinality(String),
+    repo LowCardinality(String),
+    event LowCardinality(String),
+    action LowCardinality(String),
+    payload String CODEC(ZSTD(3))
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(ingested_at)
+ORDER BY (ingested_at, subject);
+
+-- Trowel publishes the raw body and puts the GitHub event metadata in the subject.
+CREATE TABLE IF NOT EXISTS github.webhooks_queue (payload String)
+ENGINE = NATS(github_webhooks) SETTINGS
+    nats_subjects = 'github.>',
+    nats_stream = 'GITHUB',
+    nats_consumer_name = 'clickhouse',
+    nats_format = 'RawBLOB',
+    nats_max_block_size = 100,
+    nats_flush_interval_ms = 1000;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS github.webhooks_mv TO github.webhooks AS
+WITH splitByChar('.', _subject) AS tokens
+SELECT
+    now64(3, 'UTC') AS ingested_at,
+    _subject AS subject,
+    tokens[2] AS owner,
+    tokens[3] AS repo,
+    tokens[4] AS event,
+    tokens[5] AS action,
+    payload
+FROM github.webhooks_queue;
