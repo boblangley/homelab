@@ -175,8 +175,10 @@ user JWT:
 | `trowel` | `github.>` | `_INBOX.>` |
 | `deck` | `deck.>`, `$KV.deck-threads.>`, `$JS.FC.>`, `$JS.API.INFO`, and the JetStream API of stream `DECK` and bucket `deck-threads` only (`deck-bootstrap.fish` lists them) | `_INBOX.>`, `$KV.deck-threads.>` |
 
-To widen a user, `nats-user.fish <user> --update --pub ... --sub ...` adds subjects and issues a new JWT for the
-same key; restart the service that uses it.
+To widen a user, `nats-user.fish <user> --update --pub ... --sub ...` adds subjects to its allow lists and issues a
+new JWT for the same key; restart the service that uses it. It only adds, and it refuses a direction with no allow
+list (`admin` and `workspace`), where adding would restrict the user. Removing a subject means revoking the old JWT
+(`nsc revocations`).
 
 Streams and consumers are declared in `host_vars` and kept by role `nats`, except Deck's stream `DECK` and bucket
 `deck-threads`, which Deck creates and corrects itself at start.
@@ -186,7 +188,9 @@ Streams and consumers are declared in `host_vars` and kept by role `nats`, excep
 Role `deck` runs the service on wtr-pro as `deck.internal:2222` (SSH, on the overlay). Bot `wyrdbot` is a Discord
 application with the Message Content intent, installed in each server with the `bot` scope; in each granted
 channel it needs View Channel, Send Messages, Send Messages in Threads, Create Public Threads, Create Polls, Embed
-Links, Attach Files and Read Message History.
+Links, Attach Files and Read Message History: permissions integer `563259191184384` in the install link
+`https://discord.com/oauth2/authorize?client_id=<application id>&scope=bot&permissions=563259191184384`. A bot
+missing from the server makes `deck channels` fail with `PermissionDenied`, the same answer as a missing grant.
 
 Setting it up, once:
 
@@ -195,6 +199,9 @@ Setting it up, once:
 2. In Wyrwood, create policy `deck` (the reads above) and bind compose `deck/deck` on wtr-pro, directory `deck`,
    access group 1504. Create policy `deck-client` (above).
 3. Apply.
+
+When this repo widens user `deck` later (as it did with `$JS.API.INFO`), don't re-run `deck-bootstrap.fish`, which
+refuses once the host key exists; add the subjects with `nats-user.fish deck --update --pub ...` and restart Deck.
 
 Onboarding a workspace:
 

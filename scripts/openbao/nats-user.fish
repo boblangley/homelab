@@ -6,8 +6,9 @@
 # needs no change: it trusts any user that APP signs.
 #
 # Adds a user; a user that exists is refused. With --update it instead widens a user that exists: the subjects are
-# added to its permissions and a new JWT is issued for the same key, which the user's next connection uses (restart
-# the service). The old JWT stays valid with its narrower permissions, so widening needs nothing else. Narrowing an
+# added to its allow lists and a new JWT is issued for the same key, which the user's next connection uses (restart
+# the service). --update only adds; it refuses a direction that has no allow list, where adding would restrict a user
+# that is unrestricted there (admin, workspace). The old JWT stays valid with its narrower permissions, so widening needs nothing else. Narrowing an
 # existing user means revoking its old JWT in the account (nsc revocations), which changes the account JWT in
 # homelab/nats/server and restarts NATS on the next Apply.
 #
@@ -52,6 +53,10 @@ base64 -d | tar xz -C /nsc
 nsc env -s /nsc/stores >/dev/null 2>&1
 if nsc describe user -a APP -n "$NATS_USER" >/dev/null 2>&1; then
   [ -n "${NATS_UPDATE:-}" ] || { echo "exists" >&2; exit 3; }
+  # An allow list only grows; on a direction with none (unrestricted) it would start one and restrict the user.
+  nats=$(nsc describe user -a APP -n "$NATS_USER" --json | jq -c .nats)
+  [ -z "${NATS_PUB:-}" ] || [ "$(echo "$nats" | jq ".pub.allow // [] | length")" -gt 0 ] || { echo "pub unrestricted" >&2; exit 5; }
+  [ -z "${NATS_SUB:-}" ] || [ "$(echo "$nats" | jq ".sub.allow // [] | length")" -gt 0 ] || { echo "sub unrestricted" >&2; exit 5; }
   set -- edit user -a APP -n "$NATS_USER"
 else
   [ -z "${NATS_UPDATE:-}" ] || { echo "missing" >&2; exit 4; }
@@ -80,6 +85,10 @@ end
 if test $rc -eq 4
     rmdir $work
     fail "user $name doesn't exist; nothing changed. To add it, leave out --update."
+end
+if test $rc -eq 5
+    rmdir $work
+    fail "user $name has no allow list in a direction you gave; --update would restrict it, so nothing changed."
 end
 if test $rc -ne 0; or test -z "$bundle"
     rmdir $work
