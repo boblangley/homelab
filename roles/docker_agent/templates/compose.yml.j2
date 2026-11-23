@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      EDGE_AGENT: "true"
-      MANAGER_API_URL: "http://arcane:3552"
+      ARCANE_AGENT: "true"
+      ARCANE_MANAGER_API_URL: "http://arcane:3552"
     volumes:
       - {{ docker_agent_arcane_data }}:/app/data
       - /var/run/docker.sock:/var/run/docker.sock

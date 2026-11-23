@@ -6,14 +6,14 @@ services:
     restart: unless-stopped
     env_file: arcane.env
     environment:
-      APP_URL: https://arcane.internal
-      TLS_ENABLED: "false"
+      ARCANE_APP_URL: https://arcane.internal
+      ARCANE_TLS_ENABLED: "false"
       PUID: "{{ arcane_uid }}"
       PGID: "{{ arcane_uid }}"
-      PROJECTS_DIRECTORY: {{ arcane_projects }}
+      ARCANE_PROJECTS_DIRECTORY: {{ arcane_projects }}
       # Go adds these to the system roots: OIDC discovery against Pocket ID uses a homelab-CA certificate.
       SSL_CERT_DIR: /etc/homelab-ca
-      TRUSTED_PROXIES: {{ arcane_trusted_proxies }}
+      ARCANE_TRUSTED_PROXIES: {{ arcane_trusted_proxies }}
     labels:
       caddy: arcane.internal
       caddy.reverse_proxy: "{{ '{{' }}upstreams 3552{{ '}}' }}"

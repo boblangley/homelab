@@ -41,7 +41,7 @@
 
 - name: Write the agent token
   ansible.builtin.copy:
-    content: "AGENT_TOKEN={{ docker_agent_token }}\n"
+    content: "ARCANE_AGENT_TOKEN={{ docker_agent_token }}\n"
     dest: "{{ docker_agent_dir }}/.env"
     owner: root
     group: root

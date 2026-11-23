@@ -45,7 +45,7 @@
 # Never shown in a diff.
 - name: Write the encryption key
   ansible.builtin.copy:
-    content: "ENCRYPTION_KEY={{ arcane_secrets.encryption_key }}\n"
+    content: "ARCANE_ENCRYPTION_KEY={{ arcane_secrets.encryption_key }}\n"
     dest: "{{ arcane_dir }}/arcane.env"
     owner: root
     group: root

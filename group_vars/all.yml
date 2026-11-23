@@ -11,9 +11,9 @@ ansible_hashi_vault_ca_cert: /etc/ssl/certs/ca-certificates.crt
 # Wyrwood: the controller (role wyrd) and every agent (role wyrwood_agent) run the same version.
 wyrwood_version: 0.7.1
 
-# Arcane: the manager (role arcane) and every agent (role docker_agent) run the same version. Upgrade them together;
-# v3 renamed the agent's environment variables.
-arcane_version: v2.17.3
+# Arcane: the manager (role arcane) and every agent (role docker_agent) run the same version. Upgrade them together.
+# Since v3, Arcane refuses to start while a variable it reads has its pre-v3 name (without `ARCANE_`).
+arcane_version: v3.1.1
 
 # OpenTelemetry: the gateway (role otel_gateway) and the per-host agents (role otel_agent) run the same collector.
 otel_collector_version: 0.165.0
