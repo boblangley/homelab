@@ -26,6 +26,7 @@ client IDs. Those live in OpenBao, and roles read them at run time.
 - `site.yml`: the playbook.
 - `docs/external.md`: what the roles depend on that is configured by hand outside Ansible (OpenBao, Wyrwood, NATS
   users, Deck, Cloudflare, B2, GitHub, Pocket ID).
+- [Homelab update inventory](docs/update-inventory.md) lists what needs upkeep and links to its maintenance routines.
 - `scripts/openbao/`: scripts that put secrets into OpenBao. Each asks for the token and prints only lengths and
   results.
 
