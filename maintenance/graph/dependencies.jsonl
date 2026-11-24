@@ -1,0 +1,12 @@
+{"dependent_id":"caddy","dependency_id":"docker-docker-infra","kind":"runtime","reason":"Docker on docker-infra runs Caddy in the ingress-manager container."}
+{"dependent_id":"caddy","dependency_id":"homelab-overlay","kind":"network","reason":"Caddy forwards requests to Grafana over the homelab overlay."}
+{"dependent_id":"clickhouse","dependency_id":"docker-wtr-pro","kind":"runtime","reason":"Docker on wtr-pro runs the ClickHouse container."}
+{"dependent_id":"docker-docker-infra","dependency_id":"docker-infra","kind":"host","reason":"docker-infra runs this Docker Engine instance."}
+{"dependent_id":"docker-m1-1295","dependency_id":"m1-1295","kind":"host","reason":"m1-1295 runs this Docker Engine instance."}
+{"dependent_id":"docker-wtr-pro","dependency_id":"wtr-pro","kind":"host","reason":"wtr-pro runs this Docker Engine instance."}
+{"dependent_id":"grafana","dependency_id":"caddy","kind":"ingress","reason":"Caddy routes HTTPS requests to Grafana."}
+{"dependent_id":"grafana","dependency_id":"clickhouse","kind":"data","reason":"ClickHouse answers queries for Grafana's ClickHouse-backed dashboards."}
+{"dependent_id":"grafana","dependency_id":"docker-wtr-pro","kind":"runtime","reason":"Docker on wtr-pro runs the Grafana container."}
+{"dependent_id":"grafana","dependency_id":"homelab-overlay","kind":"network","reason":"Grafana reaches ClickHouse over the homelab overlay."}
+{"dependent_id":"grafana","dependency_id":"pocket-id","kind":"auth","reason":"Pocket ID authenticates new Grafana sign-ins through OIDC."}
+{"dependent_id":"pocket-id","dependency_id":"docker-docker-infra","kind":"runtime","reason":"Docker on docker-infra runs the Pocket ID container."}
