@@ -1,0 +1,2 @@
+---
+maintenance_state_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/state/homelab-maintenance"

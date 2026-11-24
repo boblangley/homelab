@@ -1,0 +1,40 @@
+---
+- name: Set up homelab maintenance on the workspace
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - defaults.yml
+  vars:
+    maintenance_apt_hosts: m1-1295.internal
+    maintenance_ssh_auth_sock: "{{ lookup('ansible.builtin.env', 'SSH_AUTH_SOCK') }}"
+  tasks:
+    - name: Create the private state directory
+      ansible.builtin.file:
+        path: "{{ maintenance_state_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Import the dependency graph
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ playbook_dir }}/graph/import-graph.py"
+          - "{{ maintenance_state_dir }}/graph.sqlite3"
+      register: maintenance_graph_import
+      changed_when: maintenance_graph_import.stdout == "Updated"
+
+    - name: Render the APT collection DAG
+      ansible.builtin.template:
+        src: apt/collect.dag.yml.j2
+        dest: "{{ maintenance_state_dir }}/homelab-apt-collect.yaml"
+        mode: "0600"
+        validate: dagu validate %s
+
+    - name: Register the APT DAG for discovery
+      ansible.builtin.file:
+        src: "{{ maintenance_state_dir }}/homelab-apt-collect.yaml"
+        path: "{{ maintenance_dag_dir }}/homelab-apt-collect.yaml"
+        state: link
+        follow: false
+      when: maintenance_dag_dir is defined
