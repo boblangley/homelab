@@ -1,15 +1,13 @@
 description: Collect available APT updates and changes since the previous snapshot
-working_dir: {{ (playbook_dir | dirname) | to_json }}
+working_dir: {{ maintenance_release_dir | to_json }}
 timeout_sec: 300
-{% if maintenance_apt_schedule is defined %}
-schedule: {{ maintenance_apt_schedule | to_json }}
+{% if maintenance_settings.apt_schedule is defined %}
+schedule: {{ maintenance_settings.apt_schedule | to_json }}
 {% endif %}
-{% if maintenance_ssh_auth_sock %}
 env:
-  - SSH_AUTH_SOCK: {{ maintenance_ssh_auth_sock | to_json }}
-{% endif %}
+  - SSH_AUTH_SOCK: {{ maintenance_settings.ssh_auth_sock | to_json }}
 steps:
   - name: collect
     run: >-
       ansible-playbook maintenance/apt/collect.yml
-      --extra-vars {{ {'maintenance_state_dir': maintenance_state_dir, 'maintenance_apt_hosts': maintenance_apt_hosts} | to_json | quote }}
+      --extra-vars {{ {'maintenance_state_dir': maintenance_state_dir, 'maintenance_apt_hosts': maintenance_targets} | to_json | quote }}

@@ -3,15 +3,22 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars_files:
+    - ../defaults.yml
   tasks:
+    - name: Check the private state directory was supplied
+      ansible.builtin.assert:
+        that: maintenance_state_dir is defined and maintenance_state_dir is match('^/.+')
+        fail_msg: Supply an absolute maintenance_state_dir outside the public checkout.
+
     - name: Confirm the requested pattern matches the inventory
       ansible.builtin.assert:
         that:
-          - query('ansible.builtin.inventory_hostnames', maintenance_apt_hosts | default('m1-1295.internal')) | length > 0
+          - query('ansible.builtin.inventory_hostnames', maintenance_apt_hosts) | length > 0
         fail_msg: The APT collection pattern matches no inventory hosts.
 
 - name: Collect available APT updates
-  hosts: "{{ maintenance_apt_hosts | default('m1-1295.internal') }}"
+  hosts: "{{ maintenance_apt_hosts }}"
   gather_facts: false
   vars_files:
     - ../defaults.yml
@@ -49,4 +56,5 @@
           - "{{ ansible_playbook_python }}"
           - "{{ playbook_dir }}/save-snapshot.py"
           - "{{ maintenance_state_dir }}/apt"
+          - "{{ inventory_hostname }}"
         stdin: "{{ apt_candidates.stdout }}"

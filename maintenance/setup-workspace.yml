@@ -6,35 +6,43 @@
   vars_files:
     - defaults.yml
   vars:
-    maintenance_apt_hosts: m1-1295.internal
-    maintenance_ssh_auth_sock: "{{ lookup('ansible.builtin.env', 'SSH_AUTH_SOCK') }}"
+    maintenance_state_dir: "{{ maintenance_settings.state_dir }}"
+    maintenance_targets: "{{ maintenance_settings.apt_hosts | default(maintenance_apt_hosts) }}"
+    maintenance_release_dir: "{{ maintenance_state_dir }}/revisions/{{ maintenance_release.stdout.split()[-1] }}"
   tasks:
-    - name: Create the private state directory
-      ansible.builtin.file:
-        path: "{{ maintenance_state_dir }}"
-        state: directory
-        mode: "0700"
+    - name: Read persistent workspace settings
+      ansible.builtin.include_vars:
+        file: "{{ maintenance_settings_file | mandatory }}"
+        name: maintenance_settings
+
+    - name: Check workspace settings
+      ansible.builtin.assert:
+        that:
+          - maintenance_settings.state_dir is defined and maintenance_settings.state_dir is match('^/.+')
+          - maintenance_settings.ssh_auth_sock is defined and maintenance_settings.ssh_auth_sock is match('^/.+')
+        fail_msg: Set absolute state_dir and ssh_auth_sock paths in the workspace settings file.
+
+    - name: Install the reviewed repository revision
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ playbook_dir }}/install-revision.py"
+          - "{{ maintenance_state_dir }}"
+      register: maintenance_release
+      changed_when: maintenance_release.stdout.startswith("Installed ")
 
     - name: Import the dependency graph
       ansible.builtin.command:
         argv:
           - "{{ ansible_playbook_python }}"
-          - "{{ playbook_dir }}/graph/import-graph.py"
+          - "{{ maintenance_release_dir }}/maintenance/graph/import-graph.py"
           - "{{ maintenance_state_dir }}/graph.sqlite3"
       register: maintenance_graph_import
       changed_when: maintenance_graph_import.stdout == "Updated"
 
     - name: Render the APT collection DAG
       ansible.builtin.template:
-        src: apt/collect.dag.yml.j2
+        src: "{{ maintenance_release_dir }}/maintenance/apt/collect.dag.yml.j2"
         dest: "{{ maintenance_state_dir }}/homelab-apt-collect.yaml"
         mode: "0600"
         validate: dagu validate %s
-
-    - name: Register the APT DAG for discovery
-      ansible.builtin.file:
-        src: "{{ maintenance_state_dir }}/homelab-apt-collect.yaml"
-        path: "{{ maintenance_dag_dir }}/homelab-apt-collect.yaml"
-        state: link
-        follow: false
-      when: maintenance_dag_dir is defined

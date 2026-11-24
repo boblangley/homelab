@@ -1,30 +1,44 @@
 # APT maintenance
 
-Run the collector from a workspace with Ansible, Dagu, Python with SQLite 3.37 or newer, and SSH access to the selected hosts. The collector uses `python3-apt` on each host. Start with `m1-1295.internal` and set `maintenance_apt_hosts` to an Ansible inventory pattern when you want a different scope.
+Run the collector from a workspace with Ansible, Dagu, Python 3.12 or newer with SQLite 3.37 or newer, and SSH access to the selected hosts. The collector uses `python3-apt` on each host. The default target is `m1-1295.internal`.
 
 ## Set up the workspace
 
-Run this from the root of a reviewed homelab checkout.
+Save a private settings file on a persistent workspace mount. In this workspace, `/workspace/homelab/references/planning/` is Git-ignored and survives a rebuild. For example, create `apt-workspace.yml` there with these settings.
 
-```sh
-ansible-playbook maintenance/setup-workspace.yml
+```yaml
+state_dir: /workspace/homelab/references/planning/apt-state
+ssh_auth_sock: /run/wyrwood/ssh-agent.sock
+apt_hosts: m1-1295.internal
+# apt_schedule: '0 8 * * *'
 ```
 
-The playbook runs on the workspace. It imports the checked-in [graph records](../graph/) into `graph.sqlite3` and renders `homelab-apt-collect.yaml` in `~/.local/state/homelab-maintenance`. Set `maintenance_state_dir` to choose another private path outside the Git checkout. SQLite is generated from the JSONL records. Edit the records to change the graph, and rerun setup to regenerate SQLite. Snapshots stay in the state directory across graph imports.
+Use the workspace's dedicated SSH agent socket. From the clean, pull-only `main` checkout, fast-forward to `origin/main` and run setup with the same settings file each time.
 
-For Dagu discovery, enable `dag_discovery.symlinks` in the local Dagu configuration and set `maintenance_dag_dir` to the workspace's DAG directory when running setup. Setup links the rendered file from there. To schedule collection, set `maintenance_apt_schedule` to the desired cron expression in the workspace's setup variables. The default renders a manual DAG. Run setup after pulling changes to the checkout it uses.
+```sh
+ansible-playbook maintenance/setup-workspace.yml \
+  -e maintenance_settings_file=/workspace/homelab/references/planning/apt-workspace.yml
+```
+
+Setup exports the reviewed commit to `<state dir>/revisions/<commit>/`. It imports that revision's [graph records](../graph/) into `graph.sqlite3` and renders `<state dir>/homelab-apt-collect.yaml`. The DAG uses the exported files until the next setup. Snapshots and decisions stay in the state directory across graph imports.
+
+The rendered DAG supports manual runs. Automatic discovery in this workspace requires enabling `dag_discovery.symlinks` through the devcontainer's Dagu configuration and adding an individual file symlink plus its wiki page through the workflows repository's GitPR process. Link `homelab-apt-collect.yaml` beneath `/workflows/local/dags/` to the rendered file. Once discovery is configured, set `apt_schedule` in the private settings file and rerun setup to publish the schedule.
 
 ## Collect and triage
 
 Run the rendered DAG manually with the workspace Dagu configuration.
 
 ```sh
-dagu start -c /etc/dagu/config.yml ~/.local/state/homelab-maintenance/homelab-apt-collect.yaml
+dagu start -c /etc/dagu/config.yml /workspace/homelab/references/planning/apt-state/homelab-apt-collect.yaml
 ```
 
-The collector refreshes APT indexes and saves one dated JSON snapshot per successful host under `apt/<host>/` in the state directory. Each snapshot lists all available updates and shows candidates that are new, changed, or no longer listed compared with the previous successful snapshot. A failed host appears in the Dagu run log. Use its last saved snapshot as stale evidence.
+The collector refreshes APT indexes and saves one dated JSON snapshot per successful host under `apt/<host>/` in the state directory. Each snapshot lists all available updates and shows candidates that are new, changed, or no longer listed compared with the previous readable snapshot. Review `unreadable_snapshots` for skipped history and consult the Dagu run result for failed hosts.
 
-Start a workspace session from `maintenance/apt/` and use [`apt-triage`](.agents/skills/apt-triage/SKILL.md) with the snapshot and Dagu result. The skill describes which advisories and changelogs to consult. This version hands the snapshot to the triage session manually.
+Start a Codex session from `maintenance/apt/` in the checkout of that revision and use [`apt-triage`](.agents/skills/apt-triage/SKILL.md). Give it the private state path, the Dagu run ID, each snapshot to review, and the next weekly window if it is set.
+
+## Private handoff
+
+Triage writes `apt/<host>/decisions/<snapshot-stem>.md` under the state directory. The operator passes the snapshot and decision file privately to the workstation session and identifies its local private state directory. Keep live snapshots, decisions, and run logs in private state outside the checkout. The workstation session writes its result to `apt/<host>/updates/<window-id>.md` there. Issues and PRs carry shareable procedure changes.
 
 ## Plan and verify an update
 
@@ -35,4 +49,4 @@ mkdir -p -m 700 ~/.local/state/homelab-maintenance
 python3 maintenance/graph/import-graph.py ~/.local/state/homelab-maintenance/graph.sqlite3
 ```
 
-Start a separate session from `maintenance/apt/` on the operator workstation. Use [`apt-update`](.agents/skills/apt-update/SKILL.md) with the triage decision, snapshot, and dependency graph. Generate the proposed transaction from APT on the target hosts and review it with the operator. Record what changed and verify the affected services after an approved update.
+Start a separate Codex session from `maintenance/apt/` on the operator workstation. Use [`apt-update`](.agents/skills/apt-update/SKILL.md) with the private handoff and dependency graph. Generate the proposed transaction from APT on the target hosts and review it with the operator. Record what changed and verify the affected services after an approved update.

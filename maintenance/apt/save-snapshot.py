@@ -1,5 +1,6 @@
 import fcntl
 import json
+import os
 import re
 import sys
 import tempfile
@@ -17,20 +18,35 @@ def index_updates(snapshot):
     return updates
 
 
-def save_snapshot(directory, snapshot):
-    host = snapshot["host"]
+def previous_snapshot(directory, host):
+    unreadable = []
+    for path in sorted(directory.glob("*.json"), reverse=True):
+        try:
+            snapshot = json.loads(path.read_text(encoding="utf-8"))
+            if snapshot["host"] != host:
+                raise ValueError("Snapshot host does not match its directory")
+            return path, index_updates(snapshot), unreadable
+        except (KeyError, TypeError, ValueError) as error:
+            unreadable.append(path.name)
+            print(f"Skipping unreadable snapshot {path.name}: {error}", file=sys.stderr)
+    return None, {}, unreadable
+
+
+def save_snapshot(directory, host, snapshot):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", host):
         raise ValueError(f"Invalid host name: {host}")
+    if snapshot["host"] != host:
+        raise ValueError(f"Snapshot host does not match inventory host {host}")
 
     current = index_updates(snapshot)
     directory = directory / host
     directory.mkdir(mode=0o700, exist_ok=True)
     with (directory / ".lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        previous_path = max(directory.glob("*.json"), default=None)
-        previous = index_updates(json.loads(previous_path.read_text())) if previous_path else {}
+        previous_path, previous, unreadable = previous_snapshot(directory, host)
         snapshot["collected_at"] = datetime.now(timezone.utc).isoformat(timespec="microseconds")
         snapshot["previous_snapshot"] = previous_path.name if previous_path else None
+        snapshot["unreadable_snapshots"] = unreadable
         snapshot["changes"] = {
             "new": [current[key] for key in sorted(current.keys() - previous.keys())],
             "changed": [
@@ -43,10 +59,12 @@ def save_snapshot(directory, snapshot):
         destination = directory / f"{snapshot['collected_at']}.json"
         temporary = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", dir=directory, delete=False) as handle:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=directory, delete=False) as handle:
                 temporary = Path(handle.name)
                 json.dump(snapshot, handle, indent=2)
                 handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
             temporary.replace(destination)
         finally:
             if temporary:
@@ -55,4 +73,4 @@ def save_snapshot(directory, snapshot):
 
 
 if __name__ == "__main__":
-    print(save_snapshot(Path(sys.argv[1]), json.load(sys.stdin)))
+    print(save_snapshot(Path(sys.argv[1]), sys.argv[2], json.load(sys.stdin)))
