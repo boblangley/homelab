@@ -57,4 +57,5 @@
           - "{{ playbook_dir }}/save-snapshot.py"
           - "{{ maintenance_state_dir }}/apt"
           - "{{ inventory_hostname }}"
+          - "{{ maintenance_revision | default('') }}"
         stdin: "{{ apt_candidates.stdout }}"

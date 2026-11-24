@@ -26,15 +26,21 @@ def install_revision(repository, state):
     releases = state / "revisions"
     releases.mkdir(mode=0o700, exist_ok=True)
     destination = releases / revision
-    if destination.is_dir():
-        return f"Current {revision}"
-
     with tempfile.TemporaryDirectory(dir=releases) as directory:
         extracted = Path(directory) / revision
         extracted.mkdir(mode=0o700)
         contents = io.BytesIO(git(repository, "archive", "--format=tar", revision))
         with tarfile.open(fileobj=contents) as archive:
             archive.extractall(extracted, filter="data")
+        if destination.exists():
+            comparison = subprocess.run(
+                ["diff", "-qr", "--no-dereference", extracted, destination],
+                capture_output=True,
+                check=False,
+            )
+            if comparison.returncode:
+                raise SystemExit(f"Export differs from {revision}. Inspect {destination} before deploying.")
+            return f"Current {revision}"
         extracted.rename(destination)
     return f"Installed {revision}"
 

@@ -20,7 +20,8 @@
         that:
           - maintenance_settings.state_dir is defined and maintenance_settings.state_dir is match('^/.+')
           - maintenance_settings.ssh_auth_sock is defined and maintenance_settings.ssh_auth_sock is match('^/.+')
-        fail_msg: Set absolute state_dir and ssh_auth_sock paths in the workspace settings file.
+          - maintenance_targets is string and maintenance_targets | trim | length > 0
+        fail_msg: Set absolute state_dir and ssh_auth_sock paths and a nonempty APT host pattern.
 
     - name: Install the reviewed repository revision
       ansible.builtin.command:
@@ -30,6 +31,20 @@
           - "{{ maintenance_state_dir }}"
       register: maintenance_release
       changed_when: maintenance_release.stdout.startswith("Installed ")
+
+    - name: Check the collection scope against the exported inventory
+      ansible.builtin.command:
+        argv:
+          - ansible
+          - --list-hosts
+          - --
+          - "{{ maintenance_targets }}"
+        chdir: "{{ maintenance_release_dir }}"
+      register: maintenance_inventory
+      changed_when: false
+      failed_when: >-
+        maintenance_inventory.rc != 0
+        or maintenance_inventory.stdout is not search('hosts [(][1-9][0-9]*[)]:')
 
     - name: Import the dependency graph
       ansible.builtin.command:
