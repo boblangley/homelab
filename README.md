@@ -31,9 +31,9 @@ client IDs. Those live in OpenBao, and roles read them at run time.
 
 ## Run
 
-The Apply workflow runs the playbook on every merge to `main`, from the self-hosted runner on docker-infra. It
-connects as `ansible` and reads OpenBao through the runner's Wyrwood socket. Run it by hand with
-`preview` for a check-mode run with diffs.
+The [Apply workflow](.github/workflows/apply.yml) runs the playbook when a push to `main` changes deployment inputs.
+The self-hosted runner on docker-infra connects as `ansible` and reads OpenBao through its Wyrwood socket. Run Apply
+by hand with `preview` for a check-mode run with diffs.
 
 From a workstation, it connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with the
 operator's own token: `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
