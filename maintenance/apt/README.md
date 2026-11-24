@@ -34,7 +34,7 @@ dagu start -c /etc/dagu/config.yml /workspace/homelab/references/planning/apt-st
 
 The collector refreshes APT indexes and saves one dated JSON snapshot per successful host under `apt/<host>/` in the state directory. Each snapshot records the deployed revision, lists all available updates, and shows candidates that are new, changed, or no longer listed compared with the previous readable snapshot. Triage checks the full candidate list for entries without a decision, including after a missed review. Consult the Dagu result for failed hosts and `unreadable_snapshots` for skipped history.
 
-Start a Codex session from `maintenance/apt/` in the checkout of that revision and use [`apt-triage`](.agents/skills/apt-triage/SKILL.md). Give it the private state path, the Dagu run ID, each snapshot to review, and the next weekly window if it is set.
+Start a Codex session from `maintenance/apt/` in the checkout of that revision and use [`apt-triage`](.agents/skills/apt-triage/SKILL.md). Give it the private state path, the Dagu run ID, each snapshot to review, and the next agreed window if it is set.
 
 ## Private handoff
 
@@ -50,3 +50,5 @@ python3 maintenance/graph/import-graph.py ~/.local/state/homelab-maintenance/gra
 ```
 
 Start a separate Codex session from `maintenance/apt/` on the operator workstation. Use [`apt-update`](.agents/skills/apt-update/SKILL.md) with the private handoff and dependency graph. Generate the proposed transaction from APT and review it with the operator. The agent runs the approved command in an interactive SSH session by default. If the plan would make the agent unable to finish, such as by taking its Xolotl gateway offline, the operator takes over before the update starts. Record what changed and verify the affected services.
+
+Start package changes and planned restarts in the predefined weekly window or an expedited window agreed with the operator. Record its start, end, and time zone in the plan.
