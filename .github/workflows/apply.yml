@@ -1,11 +1,13 @@
 # Applies deployment changes on the self-hosted runner.
 # Automatic runs come from pushes to main that change deployment inputs. Operators can also run Apply by hand.
-# Keep this runner restricted to trusted revisions because it can reach every managed host.
+# Keep pull_request and pull_request_target off this workflow. A pull request from a fork must not run code on a
+# runner that can reach every host.
 name: Apply
 
 on:
   push:
     branches: [main]
+    # Add new repository inputs to site.yml or the Apply job here so changes to them trigger deployment.
     paths:
       - 'site.yml'
       - 'ansible.cfg'
