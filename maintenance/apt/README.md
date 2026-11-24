@@ -49,4 +49,4 @@ mkdir -p -m 700 ~/.local/state/homelab-maintenance
 python3 maintenance/graph/import-graph.py ~/.local/state/homelab-maintenance/graph.sqlite3
 ```
 
-Start a separate Codex session from `maintenance/apt/` on the operator workstation. Use [`apt-update`](.agents/skills/apt-update/SKILL.md) with the private handoff and dependency graph. Generate the proposed transaction from APT and review it with the operator. The operator runs the approved command in an interactive SSH terminal. Record what changed and verify the affected services.
+Start a separate Codex session from `maintenance/apt/` on the operator workstation. Use [`apt-update`](.agents/skills/apt-update/SKILL.md) with the private handoff and dependency graph. Generate the proposed transaction from APT and review it with the operator. The agent runs the approved command in an interactive SSH session by default. If the plan would make the agent unable to finish, such as by taking its Xolotl gateway offline, the operator takes over before the update starts. Record what changed and verify the affected services.
