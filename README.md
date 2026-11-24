@@ -31,12 +31,15 @@ client IDs. Those live in OpenBao, and roles read them at run time.
 
 ## Run
 
-The Apply workflow runs the playbook on every merge to `main`, from the self-hosted runner on docker-infra. It
-connects as `ansible` and reads OpenBao through the runner's Wyrwood socket. Run it by hand with
-`preview` for a check-mode run with diffs.
+The [Apply workflow](.github/workflows/apply.yml) runs the playbook when a push to `main` changes `site.yml`, the
+inventory, host or group variables, roles, Ansible configuration, SSH host keys, or collection requirements. The
+self-hosted runner on docker-infra connects as `ansible` and reads OpenBao through its Wyrwood socket.
 
-From a workstation, it connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with the
-operator's own token: `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
+Manual runs default to `preview`, which shows a check-mode run with diffs. Clear `preview` on a manual run from
+`main` to apply the current configuration.
+
+From a workstation, the playbook connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with
+the operator's own token. `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
 
 The `boblangley-dev` workspace also connects as `agent`, using the dedicated `homelab-agent` OpenBao Transit key
 through its Wyrwood binding. The `agent` account authorizes both the operator's key and this workspace key; the
