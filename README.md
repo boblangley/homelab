@@ -71,6 +71,11 @@ A fresh host has only the installer's account and a password, so its first step 
 
 ### Workstations
 
-`tinomen-dev.internal` is a CachyOS workstation tracked in the `workstations` inventory group. Its host package and
-Compose setup run locally. It uses the `homelab` overlay as a drained Swarm worker, which permits local Compose
-workloads and keeps scheduled services on other nodes. The workstation's Caddy serves its Menagerie instance.
+`tinomen-dev.internal` is managed by the CachyOS workstation play in `site.yml`. The runner connects as
+`ansible` using `roles/accounts/files/ansible.pub` and uses passwordless sudo. On the workstation, run
+`sudo fish scripts/bootstrap-workstation.fish` from this checkout before the first Apply. The bootstrap
+limits SSH access for the runner key to docker-infra. The checked-in SSH host key pins the workstation's identity.
+
+The workstation uses the `homelab` overlay as a drained Swarm worker. Complete the local Swarm join, Wyrwood
+enrollment and Menagerie binding before the first Apply. The workstation play updates Wyrwood through its
+pinned AUR package and deploys Menagerie. The workstation's Caddy serves its Menagerie instance.

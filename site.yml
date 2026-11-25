@@ -108,6 +108,45 @@
   roles:
     - menagerie
 
+- name: CachyOS workstations
+  hosts: workstations
+  remote_user: ansible
+  become: true
+  pre_tasks:
+    - name: Check the workstation package manager
+      ansible.builtin.assert:
+        that: ansible_facts.pkg_mgr == 'pacman'
+
+    - name: Check for initial Wyrwood enrollment
+      ansible.builtin.stat:
+        path: /var/lib/wyrwood/controller.json
+      register: workstation_wyrwood_enrollment
+
+    - name: Require workstation bootstrap before deployment
+      ansible.builtin.assert:
+        that: workstation_wyrwood_enrollment.stat.exists
+        fail_msg: Complete the local Swarm and Menagerie bootstrap before applying this play.
+
+  tasks:
+    - name: Configure the workstation deployment account and directories
+      ansible.builtin.import_role:
+        name: workstation
+
+    - name: Update the workstation Wyrwood agent
+      ansible.builtin.import_role:
+        name: wyrwood_agent
+        tasks_from: arch
+
+    - name: Wait for Menagerie's credential socket
+      ansible.builtin.wait_for:
+        path: /run/wyrwood/containers/menagerie/vault.sock
+        timeout: 30
+      when: not ansible_check_mode
+
+    - name: Deploy Menagerie on the workstation
+      ansible.builtin.import_role:
+        name: menagerie
+
 # Tagged so the runner can skip itself; apply it from a workstation.
 - name: Actions runner
   hosts: runners:&managed

@@ -1,0 +1,16 @@
+---
+workstation_owner: tinomen
+workstation_homelab_interface: enp4s0
+workstation_runner_address: 192.168.0.10
+
+# Reviewed AUR package revision for the Wyrwood version in group_vars/all.yml.
+wyrwood_arch_aur_revision: ec73138d8bc23db3c919e1ae1bb62d2159454163
+wyrwood_arch_pkgrel: 1
+wyrwood_access_groups:
+  - name: tinomen
+    gid: 1000
+
+menagerie_name: menagerie.tinomen-dev.internal
+menagerie_tls_internal: true
+menagerie_operator_key: menagerie-tinomen-dev
+menagerie_xolotl_provisioner_name: menagerie-tinomen-dev

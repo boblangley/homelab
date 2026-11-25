@@ -38,7 +38,7 @@ provisioning:
     controller: ssh://wyrwood.internal:2222
     host-key: SHA256:EcvbWlOVBUPSsJvj0iZtUtCM+/weaQ8eATbyTo7w9ik
     agent: {{ inventory_hostname | split('.') | first }}
-    operator-key: menagerie-operator-3
+    operator-key: {{ menagerie_operator_key }}
   xolotl:
     url: https://xolotl.internal
     # The policy of each workspace's client key, named devcontainer/<workspace>. Existing workspaces keep the key
@@ -47,4 +47,4 @@ provisioning:
     # Where `xolotl keys issue` writes it, so nothing is copied
     key-secret:
       kv-mount: kv
-      path: xolotl/keys/devcontainer-provisioner/menagerie
+      path: xolotl/keys/devcontainer-provisioner/{{ menagerie_xolotl_provisioner_name }}
