@@ -76,6 +76,7 @@ A fresh host has only the installer's account and a password, so its first step 
 `sudo fish scripts/bootstrap-workstation.fish` from this checkout before the first Apply. The bootstrap
 limits SSH access for the runner key to docker-infra. The checked-in SSH host key pins the workstation's identity.
 
-The workstation uses the `homelab` overlay as a drained Swarm worker. Complete the local Swarm join, Wyrwood
-enrollment and Menagerie binding before the first Apply. The workstation play updates Wyrwood through its
+The workstation uses the `homelab` overlay as an active Swarm worker with the `workstation=true` node label.
+Docker requires active availability for standalone containers to attach to an overlay. Complete the local
+Swarm join, Wyrwood enrollment and Menagerie binding before the first Apply. The workstation play updates Wyrwood through its
 pinned AUR package and deploys Menagerie. The workstation's Caddy serves its Menagerie instance.
