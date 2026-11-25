@@ -2,6 +2,7 @@
 services:
   seek:
     image: ghcr.io/wyrd-company/seek-server:{{ seek_version }}
+    container_name: {{ seek_container }}
     restart: unless-stopped
     # The image's user, numeric: Wyrwood checks socket access from inspect output.
     user: "65532:65532"
@@ -21,6 +22,11 @@ services:
         source: {{ seek_wyrwood_dir }}
         target: /run/wyrwood
         bind: { create_host_path: false }
+    # What the Wyrwood binding's contract checks for. Seek takes VAULT_ADDR as vault.address, the value server.yml has;
+    # SSH_AUTH_SOCK is unused.
+    environment:
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
     networks:
       - homelab
 
