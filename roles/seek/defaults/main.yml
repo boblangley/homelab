@@ -1,6 +1,25 @@
 ---
+# Compose project `seek`: the Seek server, which holds the search providers' API keys and gives clients one token.
+#
+# It reads each secret itself from OpenBao through its Wyrwood binding (compose seek/seek, directory seek): one field
+# of the KV secret homelab/seek per setting, once at start and again every seek_secret_refresh_seconds. Seek sends no
+# credential; the container's vault.sock supplies its own and the namespace (wyrwood). Nothing secret is on disk.
 seek_dir: /opt/docker/seek
-seek_version: "0.3.2"
+seek_version: "0.4.0"
 seek_name: seek.internal
 seek_socket_gid: 1505
-seek_wyrwood_dir: /run/wyrwood/containers/seek-secrets
+seek_wyrwood_dir: /run/wyrwood/containers/seek
+seek_secret_refresh_seconds: 300
+# The KV secret's mount and path, and the provider settings with the field that holds each key. The field names are
+# the ones Seek 0.3 used, so the secret written for 0.3.2 is read as it is.
+seek_vault_mount: kv
+seek_vault_path: homelab/seek
+seek_token_field: SEEK_SERVER_TOKEN
+seek_provider_fields:
+  parallel: PARALLEL_API_KEY
+  exa: EXA_API_KEY
+  brave-search: BRAVE_SEARCH_API_KEY
+  brave-answers: BRAVE_ANSWERS_API_KEY
+  perplexity: PERPLEXITY_API_KEY
+  google: GEMINI_API_KEY
+  firecrawl: FIRECRAWL_API_KEY

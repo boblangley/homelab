@@ -1,50 +1,27 @@
 # Managed by Ansible (homelab repo, role seek).
 services:
-  secrets:
-    image: python:3.13-alpine
-    container_name: seek-secrets
-    restart: unless-stopped
-    user: "65532:65532"
-    group_add:
-      - "{{ seek_socket_gid }}"
-    network_mode: none
-    command: ["python", "-B", "/scripts/fetch-secrets.py"]
-    volumes:
-      - ./scripts:/scripts:ro
-      - config:/config
-      - type: bind
-        source: {{ seek_wyrwood_dir }}
-        target: /run/wyrwood
-        bind: { create_host_path: false }
-    healthcheck:
-      test: ["CMD", "test", "-s", "/config/seek/config.json"]
-      interval: 5s
-      timeout: 2s
-      retries: 12
-
   seek:
     image: ghcr.io/wyrd-company/seek-server:{{ seek_version }}
-    user: "65532:65532"
     restart: unless-stopped
-    depends_on:
-      secrets:
-        condition: service_healthy
+    # The image's user, numeric: Wyrwood checks socket access from inspect output.
+    user: "65532:65532"
+    # The Wyrwood binding's access group, for its sockets.
+    group_add:
+      - "{{ seek_socket_gid }}"
     labels:
       caddy: {{ seek_name }}
       caddy.import: openbao_tls
       caddy.reverse_proxy: "{{ '{{' }}upstreams 8787{{ '}}' }}"
     volumes:
-      - config:/config:ro
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/seek:ro
+      - type: bind
+        source: {{ seek_wyrwood_dir }}
+        target: /run/wyrwood
+        bind: { create_host_path: false }
     networks:
       - homelab
 
 networks:
   homelab:
     external: true
-
-volumes:
-  config:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=1m,mode=0700,uid=65532,gid=65532"
