@@ -1,0 +1,51 @@
+---
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ seek_dir }}"
+    - "{{ seek_dir }}/scripts"
+  register: seek_dirs
+
+- name: Write the Compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ seek_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the secrets loader
+  ansible.builtin.copy:
+    src: fetch-secrets.py
+    dest: "{{ seek_dir }}/scripts/fetch-secrets.py"
+    owner: root
+    group: root
+    mode: "0644"
+  register: seek_loader
+
+- name: Check for the Wyrwood binding
+  ansible.builtin.stat:
+    path: "{{ seek_wyrwood_dir }}/vault.sock"
+  register: seek_binding
+
+- name: Report the missing Wyrwood binding
+  ansible.builtin.debug:
+    msg: >-
+      Bind compose seek/secrets (directory seek-secrets) on agent {{ inventory_hostname_short }}
+      with policy seek and access group {{ seek_socket_gid }}, then apply again.
+  when: not seek_binding.stat.exists
+
+- name: Start the Seek project
+  community.docker.docker_compose_v2:
+    project_src: "{{ seek_dir }}"
+    project_name: seek
+    state: present
+    recreate: "{{ 'always' if seek_loader is changed else 'auto' }}"
+  when:
+    - seek_binding.stat.exists
+    - not (ansible_check_mode and seek_dirs is changed)

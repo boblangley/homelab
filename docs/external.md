@@ -54,6 +54,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/ntfy/<admin>` | `password` | the ntfy admin, for the ntfy apps |
 | `homelab/ntfy/homelab` | `token` | publishers of topic `homelab` |
 | `homelab/postgres/postgres` | `password` | `postgres` (only when it creates a data directory) |
+| `homelab/seek` | Seven provider API keys and `SEEK_SERVER_TOKEN` | Seek, through Wyrwood |
 | `homelab/runner` | `app_id`, `app_login` | the runner's entrypoint |
 | `homelab/trowel/github/<owner>` | `webhook_secret` | Trowel, through Wyrwood |
 | `homelab/wyrd` | `wyrwood_role_id`, `wyrwood_client_id`, `xolotl_client_id` | `wyrd` |
@@ -75,8 +76,9 @@ Controller `wyrwood.internal` (docker-infra); an agent on every Docker host. Bin
 | wtr-pro | compose `ntfy/secrets`, directory `ntfy-secrets` | `ntfy`: read `kv/data/homelab/ntfy` | |
 | wtr-pro | compose `trowel/trowel`, directory `trowel` | `trowel`: read `kv/data/homelab/nats/trowel` and `kv/data/homelab/trowel/github/*` | 1503 `trowel` |
 | wtr-pro | compose `deck/deck`, directory `deck` | `deck`: read `kv/data/homelab/deck/host`, `kv/data/homelab/nats/deck` and `kv/data/deck/bots/*` | 1504 `deck` |
+| wtr-pro | compose `seek/secrets`, directory `seek-secrets` | `seek`: read `kv/data/homelab/seek` | 1505 `seek` |
 
-Access groups 1502, 1503 and 1504 are created by role `wyrwood_agent` (`wyrwood_access_groups`); on gtr6 the agent was
+Access groups 1502, 1503, 1504 and 1505 are created by role `wyrwood_agent` (`wyrwood_access_groups`); on gtr6 the agent was
 added to `workspaces` by hand.
 
 Menagerie chooses each gtr6 workspace's policies, on its Policies screen and each workspace's **Policies**; templates
@@ -220,6 +222,30 @@ Onboarding a workspace:
    its name: check that its row in Menagerie shows the policy applied. Any other binding gets policy `deck-client`
    with value `deck_key: <workspace>` in Wyrwood. Its `deck` CLI then works with the client config from the
    workspace dotfiles: `deck channels` lists what it was granted.
+
+## Seek
+
+Seek runs on wtr-pro behind Caddy at `https://seek.internal`.
+
+1. From a workstation with OpenBao access to create `kv/homelab/seek` in namespace `wyrwood`, run
+   `fish scripts/openbao/seek-import.fish /path/to/provider-keys.json`. Supply the seven provider keys as a
+   flat JSON object keyed by their environment variable names. The script generates a client token and stores
+   it with the provider keys. It refuses to overwrite an existing secret.
+2. Create the `seek` policy and Wyrwood binding listed above. The policy needs only
+   `path "kv/data/homelab/seek" { capabilities = ["read"] }`. Run
+   `ansible-playbook site.yml --limit wtr-pro.internal --tags wyrwood_agent` to create access group 1505
+   before creating the binding. After binding, run
+   `ansible-playbook site.yml --limit wtr-pro.internal --tags seek`.
+3. Run `curl --fail https://seek.internal/healthz` from a client that trusts the homelab CA. Expect
+   `{"status":"ok"}`.
+4. An authorized operator can read just the client token with
+   `bao kv get -namespace=wyrwood -mount=kv -field=SEEK_SERVER_TOKEN homelab/seek`. Give clients this value
+   as `SEEK_SERVER_TOKEN` and set `SEEK_SERVER_URL=https://seek.internal`. Keep client access limited to
+   the token because the OpenBao KV record also holds the provider keys.
+
+The secrets helper refreshes Seek's configuration in memory every 30 seconds. After changing keys in OpenBao,
+allow a refresh, then restart the Seek container so it reads the updated configuration. Seek accepts
+comma-separated client tokens for staged rotation.
 
 ## Cloudflare
 

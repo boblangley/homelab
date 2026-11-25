@@ -1,0 +1,6 @@
+---
+seek_dir: /opt/docker/seek
+seek_version: "0.3.2"
+seek_name: seek.internal
+seek_socket_gid: 1505
+seek_wyrwood_dir: /run/wyrwood/containers/seek-secrets

@@ -82,6 +82,8 @@ wyrwood_access_groups:
     gid: 1503
   - name: deck
     gid: 1504
+  - name: seek
+    gid: 1505
 
 # One GitHub webhook each, at https://hooks.wyrd.team/github/<name>, with its own secret.
 trowel_github_orgs:
