@@ -61,6 +61,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `deck/bots/<bot>` | `token`: the Discord bot's token, stored by hand (`WyrdBot`, named `wyrdbot` in Deck's config) | Deck, through Wyrwood |
 | `xolotl/nats` | `creds` | Xolotl, which reads its own `xolotl/` prefix |
 | `workspace/ntfy` | `topic`, `url`, `token` | the workspaces' Dagu |
+| `workspace/seek` | `token`: the workspaces' Seek client token, also an entry in `homelab/seek` `SEEK_SERVER_TOKEN` | the workspaces, through Wyrwood (policy `workspace`) |
 
 ## Wyrwood
 
@@ -246,15 +247,19 @@ and `server.tokens`). Seek reads these names as they are, with no renaming.
 3. Run `curl --fail https://seek.internal/healthz` from a client that trusts the homelab CA. Expect
    `{"status":"ok"}`. `docker logs seek` on wtr-pro shows `seek serve: providers with keys:` with the seven
    provider IDs: `parallel`, `exa`, `brave-search`, `brave-answers`, `perplexity`, `google` and `firecrawl`.
-4. An authorized operator can read just the client token with
-   `bao kv get -namespace=wyrwood -mount=kv -field=SEEK_SERVER_TOKEN homelab/seek`. Give clients this value
-   as `SEEK_SERVER_TOKEN_VALUE` (or a file or helper for it), and set `SEEK_SERVER_URL=https://seek.internal`.
-   Keep client access limited to the token because the OpenBao KV record also holds the provider keys.
+4. Each kind of client has its own token, an entry in the comma-separated `SEEK_SERVER_TOKEN`. Workspaces read theirs
+   from `kv/workspace/seek` (field `token`) through Wyrwood; the `workspace` policy grants that path and not
+   `homelab/seek`. Their setup is in workspace-dotfiles `docs/seek.md`. Another client gets its own new token,
+   appended to `SEEK_SERVER_TOKEN` with the existing entries kept, and set as that client's
+   `SEEK_SERVER_TOKEN_VALUE` (or a file or helper for it) with `SEEK_SERVER_URL=https://seek.internal`. Do not hand
+   out the server's whole `SEEK_SERVER_TOKEN`, and keep client access away from `homelab/seek`: the record also holds
+   the provider keys.
 
 Seek reads every secret before it starts and again every `seek_secret_refresh_seconds` (300), keeping the value it
 has when a later read fails. A changed key or token in OpenBao therefore reaches the server within five minutes
-without a restart. A changed `server.yml` or version recreates the container. Seek accepts comma-separated client
-tokens in `SEEK_SERVER_TOKEN` for staged rotation: store `<new>,<old>`, then `<new>`.
+without a restart. A changed `server.yml` or version recreates the container. To rotate a client's token, add the
+new token to `SEEK_SERVER_TOKEN` beside the others, confirm the server accepts it with a search, switch the client,
+then remove only the token it replaces.
 
 Clients upgraded to 0.4.0 no longer read 0.3's `config.json` or variable names. See
 [Upgrade from seek 0.3](https://wyrd.foo/docs/seek/upgrade-from-0-3/).
