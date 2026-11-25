@@ -20,6 +20,7 @@
 - name: Wyrwood agent
   hosts: wyrwood_agents:&managed
   become: true
+  tags: wyrwood_agent
   roles:
     - wyrwood_agent
 
@@ -88,6 +89,13 @@
   become: true
   roles:
     - deck
+
+- name: Seek server
+  hosts: seek:&managed
+  become: true
+  tags: seek
+  roles:
+    - seek
 
 # After the gateway, which the agents send to.
 - name: OpenTelemetry agent
