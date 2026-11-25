@@ -1,0 +1,18 @@
+# Managed by Ansible (homelab repo, role seek). Holds no secret: each setting names a field of a KV secret.
+server:
+  # The container's HTTP port is 8787; the image binds 0.0.0.0 itself.
+  secret-refresh-seconds: {{ seek_secret_refresh_seconds }}
+  tokens:
+    vault: { path: {{ seek_vault_path }}, key: {{ seek_token_field }} }
+providers:
+{% for provider, field in seek_provider_fields.items() %}
+  {{ provider }}:
+    api-key:
+      vault: { path: {{ seek_vault_path }}, key: {{ field }} }
+{% endfor %}
+vault:
+  # Wyrwood's socket supplies the login and the namespace.
+  address: unix:///run/wyrwood/vault.sock
+  auth:
+    mode: none
+  mount: {{ seek_vault_mount }}

@@ -1,5 +1,7 @@
 #!/usr/bin/env fish
 # Import a provider-key JSON file using the current OpenBao credentials.
+# The fields keep Seek 0.3's variable names. Role seek maps each field to a Seek 0.4 setting in its server.yml
+# (GEMINI_API_KEY is the `google` provider), so the secret needs no change between 0.3 and 0.4.
 if test (count $argv) -ne 1
     echo 'Usage: fish scripts/openbao/seek-import.fish <provider-keys.json>' >&2
     exit 2
