@@ -45,6 +45,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/edge` | `opnsense_api_key`, `opnsense_api_secret`, `pihole_password`, `cloudflared_<tunnel>_token` | `edge` |
 | `homelab/grafana` | `admin_password`, `secret_key`, `oidc_client_id`, `oidc_client_secret` | `grafana` |
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
+| `homelab/hosts/tinomen-dev.internal/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` on tinomen-dev |
 | `homelab/identity` | `encryption_key` | `identity` |
 | `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
 | `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
