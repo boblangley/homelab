@@ -15,7 +15,11 @@ services:
     labels:
       caddy: {{ menagerie_name }}
       caddy.reverse_proxy: "{{ '{{' }}upstreams 8080{{ '}}' }}"
+{% if menagerie_tls_internal %}
+      caddy.tls: internal
+{% else %}
       caddy.import: openbao_tls
+{% endif %}
     # Long-form binds, so Docker never creates a missing source.
     volumes:
       - type: bind

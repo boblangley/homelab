@@ -1,0 +1,34 @@
+---
+- name: Keep the runner key authorized for workstation deployments
+  ansible.posix.authorized_key:
+    user: ansible
+    key: "{{ lookup('ansible.builtin.file', role_path ~ '/../accounts/files/ansible.pub') }}"
+    key_options: 'restrict,from="{{ workstation_runner_address }}"'
+    exclusive: true
+
+- name: Keep the runner's passwordless sudo access
+  ansible.builtin.copy:
+    content: "ansible ALL=(ALL) NOPASSWD: ALL\n"
+    dest: /etc/sudoers.d/ansible
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+- name: Allow the runner's SSH connection from docker-infra
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_homelab_interface }}"
+    proto: tcp
+    from_ip: "{{ workstation_runner_address }}"
+    to_port: "22"
+    comment: HomeLab Actions runner
+
+- name: Keep the workstation Menagerie socket directory private
+  ansible.builtin.file:
+    path: /var/lib/menagerie-sockets
+    state: directory
+    owner: "{{ workstation_owner }}"
+    group: "{{ workstation_owner }}"
+    mode: "0700"

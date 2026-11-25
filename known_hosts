@@ -7,3 +7,6 @@ ser6-max.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGh27d3IWyjeAwIE3tY3qAp8JK
 m1-1295.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKKONEUHgRF2FJ1u4lO1QEdre0pVhxnYS/qkwy8yIXTv
 gtr6.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEbzwzgt4UhuaWCHWKlUzrEpnULvammqiqxSz1cqIiE2
 rp4.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPE6u53cjVgKTRZ6s4KMTHx/zrni4C3XJVxW0mibeYdA
+
+# tinomen-dev.internal SHA256:H/du+lHu3l/ZWeNwj0TIcvuijIPabS3586FFiOMjzk4
+tinomen-dev.internal ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMpg73XkmiUdSgYaBFqDm7IhzeBHGW1XJ0Irk56qiDl/

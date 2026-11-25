@@ -1,0 +1,75 @@
+---
+- name: Read the installed Wyrwood Arch package
+  ansible.builtin.command:
+    argv: [pacman, --query, wyrwood-bin]
+  register: wyrwood_arch_installed
+  check_mode: false
+  changed_when: false
+
+- name: Upgrade the Wyrwood Arch package
+  when:
+    - not ansible_check_mode
+    - wyrwood_arch_installed.stdout != 'wyrwood-bin ' ~ wyrwood_version ~ '-' ~ wyrwood_arch_pkgrel
+  block:
+    - name: Check that the package transaction will stop the old agent
+      ansible.builtin.stat:
+        path: /usr/share/libalpm/hooks/wyrwood-engine-upgrade.hook
+      register: wyrwood_arch_hook
+
+    - name: Require the packaged Wyrwood upgrade hook
+      ansible.builtin.assert:
+        that: wyrwood_arch_hook.stat.exists
+        fail_msg: Install the packaged Wyrwood upgrade hook with the local bootstrap before upgrading.
+
+    - name: Create a private build directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: wyrwood-aur-
+      become_user: "{{ workstation_owner }}"
+      register: wyrwood_arch_build
+
+    - name: Build and install the pinned Wyrwood package
+      block:
+        - name: Check out the reviewed AUR package revision
+          ansible.builtin.git:
+            repo: https://aur.archlinux.org/wyrwood-bin.git
+            dest: "{{ wyrwood_arch_build.path }}/source"
+            version: "{{ wyrwood_arch_aur_revision }}"
+          become_user: "{{ workstation_owner }}"
+
+        - name: Build the Arch package as the workstation user
+          ansible.builtin.command:
+            argv: [makepkg, --noconfirm]
+            chdir: "{{ wyrwood_arch_build.path }}/source"
+          become_user: "{{ workstation_owner }}"
+
+        - name: Resolve the built package path
+          ansible.builtin.command:
+            argv: [makepkg, --packagelist]
+            chdir: "{{ wyrwood_arch_build.path }}/source"
+          become_user: "{{ workstation_owner }}"
+          register: wyrwood_arch_package
+          changed_when: false
+
+        - name: Identify the package before installation
+          ansible.builtin.command:
+            argv: [pacman, --query, --file, "{{ wyrwood_arch_package.stdout }}"]
+          register: wyrwood_arch_built_version
+          changed_when: false
+
+        - name: Verify the package matches the intended release
+          ansible.builtin.assert:
+            that: wyrwood_arch_built_version.stdout == 'wyrwood-bin ' ~ wyrwood_version ~ '-' ~ wyrwood_arch_pkgrel
+
+        - name: Install the Arch package and run its service hooks
+          ansible.builtin.command:
+            argv: [pacman, --upgrade, --noconfirm, "{{ wyrwood_arch_package.stdout }}"]
+
+      always:
+        - name: Remove the temporary Wyrwood build directory
+          ansible.builtin.file:
+            path: "{{ wyrwood_arch_build.path }}"
+            state: absent
+
+- name: Configure and enroll the Wyrwood agent
+  ansible.builtin.import_tasks: agent.yml
