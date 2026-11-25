@@ -68,3 +68,9 @@ A fresh host has only the installer's account and a password, so its first step 
 2. Add the host to `inventory/hosts.yml` and give it a `host_vars` file.
 3. Run the playbook from a workstation, limited to the new host: `ansible-playbook site.yml --limit <host> --skip-tags runner`. It turns off password login, so step 1 must work first. The Apply workflow connects as `ansible`, which this first run creates, so until then Apply reports the host unreachable.
 4. For a Docker worker, add it to `edge_socket_proxies` (docker-infra) only after that run has started its socket proxy.
+
+### Workstations
+
+`tinomen-dev.internal` is a CachyOS workstation tracked in the `workstations` inventory group. Its host package and
+Compose setup run locally. It uses the `homelab` overlay as a drained Swarm worker, which permits local Compose
+workloads and keeps scheduled services on other nodes. The workstation's Caddy serves its Menagerie instance.
