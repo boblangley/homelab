@@ -54,7 +54,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/ntfy/<admin>` | `password` | the ntfy admin, for the ntfy apps |
 | `homelab/ntfy/homelab` | `token` | publishers of topic `homelab` |
 | `homelab/postgres/postgres` | `password` | `postgres` (only when it creates a data directory) |
-| `homelab/seek` | Seven provider API keys, named for Seek 0.3's variables, and `SEEK_SERVER_TOKEN` | Seek, through Wyrwood |
+| `homelab/seek` | Seven provider API keys, named for the variables Seek's earlier releases used, and `SEEK_SERVER_TOKEN` | Seek, through Wyrwood |
 | `homelab/runner` | `app_id`, `app_login` | the runner's entrypoint |
 | `homelab/trowel/github/<owner>` | `webhook_secret` | Trowel, through Wyrwood |
 | `homelab/wyrd` | `wyrwood_role_id`, `wyrwood_client_id`, `xolotl_client_id` | `wyrd` |
@@ -228,10 +228,10 @@ Onboarding a workspace:
 Seek runs on wtr-pro behind Caddy at `https://seek.internal`. The container reads its own settings from
 `/etc/seek/server.yml`, which role `seek` renders, and each secret from one field of the KV secret `homelab/seek`
 through its Wyrwood binding's `vault.sock`: `vault.auth.mode: none` and no namespace, because the socket supplies
-the login and the namespace `wyrwood`. Fields are the names Seek 0.3 used (`PARALLEL_API_KEY`, `EXA_API_KEY`,
+the login and the namespace `wyrwood`. Fields keep the names Seek's earlier releases used (`PARALLEL_API_KEY`, `EXA_API_KEY`,
 `BRAVE_SEARCH_API_KEY`, `BRAVE_ANSWERS_API_KEY`, `PERPLEXITY_API_KEY`, `GEMINI_API_KEY`, `FIRECRAWL_API_KEY`,
 `SEEK_SERVER_TOKEN`); the role maps each to its setting (`providers.<id>.api-key`, with `GEMINI_API_KEY` for `google`,
-and `server.tokens`). Seek 0.4.0 needs no change to the secret.
+and `server.tokens`). Seek reads these names as they are, with no renaming.
 
 1. From a workstation with OpenBao access to create `kv/homelab/seek` in namespace `wyrwood`, run
    `fish scripts/openbao/seek-import.fish /path/to/provider-keys.json`. Supply the seven provider keys as a
@@ -240,11 +240,11 @@ and `server.tokens`). Seek 0.4.0 needs no change to the secret.
 2. Create the `seek` policy and Wyrwood binding listed above. The policy needs only
    `path "kv/data/homelab/seek" { capabilities = ["read"] }`. Run
    `ansible-playbook site.yml --limit wtr-pro.internal --tags wyrwood_agent` to create access group 1505
-   before creating the binding. Bind compose `seek/seek`, not the 0.3.2 key `seek/secrets`. After binding, run
-   `ansible-playbook site.yml --limit wtr-pro.internal --tags seek`. Remove the `seek/secrets` binding once Seek
-   is running on the new one.
+   before creating the binding. Bind compose `seek/seek` (directory `seek`) with policy `seek` and access group
+   1505. After binding, run `ansible-playbook site.yml --limit wtr-pro.internal --tags seek`; until the binding
+   exists the role writes its files and does not start Seek.
 3. Run `curl --fail https://seek.internal/healthz` from a client that trusts the homelab CA. Expect
-   `{"status":"ok"}`. `docker logs seek-seek-1` on wtr-pro shows `seek serve: providers with keys:` with the seven
+   `{"status":"ok"}`. `docker logs seek` on wtr-pro shows `seek serve: providers with keys:` with the seven
    provider IDs: `parallel`, `exa`, `brave-search`, `brave-answers`, `perplexity`, `google` and `firecrawl`.
 4. An authorized operator can read just the client token with
    `bao kv get -namespace=wyrwood -mount=kv -field=SEEK_SERVER_TOKEN homelab/seek`. Give clients this value
