@@ -9,6 +9,8 @@ services:
     group_add:
       - "{{ seek_socket_gid }}"
     labels:
+      # Changes with server.yml, which Seek reads only at start, so Compose recreates the container.
+      foo.wyrd.seek-config: "{{ lookup('ansible.builtin.template', 'server.yml.j2') | hash('sha256') }}"
       caddy: {{ seek_name }}
       caddy.import: openbao_tls
       caddy.reverse_proxy: "{{ '{{' }}upstreams 8787{{ '}}' }}"
