@@ -140,6 +140,14 @@
       ansible.builtin.import_role:
         name: workstation
 
+    - name: Configure the workstation operator account
+      ansible.builtin.import_role:
+        name: accounts
+        tasks_from: automation
+      vars:
+        accounts_automation:
+          - "{{ accounts_agent }}"
+
     - name: Update the workstation Wyrwood agent
       ansible.builtin.import_role:
         name: wyrwood_agent
@@ -154,6 +162,10 @@
     - name: Deploy Menagerie on the workstation
       ansible.builtin.import_role:
         name: menagerie
+
+    - name: Deploy the Arcane agent and Docker socket proxy on the workstation
+      ansible.builtin.import_role:
+        name: docker_agent
 
 # Tagged so the runner can skip itself; apply it from a workstation.
 - name: Actions runner

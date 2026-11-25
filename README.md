@@ -78,5 +78,12 @@ limits SSH access for the runner key to docker-infra. The checked-in SSH host ke
 
 The workstation uses the `homelab` overlay as an active Swarm worker with the `workstation=true` node label.
 Docker requires active availability for standalone containers to attach to an overlay. Complete the local
-Swarm join, Wyrwood enrollment and Menagerie binding before the first Apply. The workstation play updates Wyrwood through its
-pinned AUR package and deploys Menagerie. The workstation's Caddy serves its Menagerie instance.
+Swarm join, Wyrwood enrollment and Menagerie binding before the first Apply. The workstation play updates
+Wyrwood through its pinned AUR package and deploys Menagerie, the Arcane agent, and the read-only Docker socket
+proxy. The workstation's Caddy serves its Menagerie instance.
+
+The play also installs the standard `agent` account with the operator and `homelab-agent` SSH keys and passwordless
+sudo. Its firewall allows SSH from gtr6, which hosts the `boblangley-dev` workspace.
+
+Create an Arcane environment for `tinomen-dev.internal` and store its token with
+`fish scripts/openbao/arcane-agent-token.fish tinomen-dev.internal` before applying the Docker agent role.
