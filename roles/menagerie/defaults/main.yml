@@ -7,7 +7,7 @@
 #
 # Installation identifiers, read from OpenBao at homelab/menagerie: oidc_client_id, github_app_id.
 menagerie_dir: /opt/docker/menagerie
-menagerie_version: 0.5.0
+menagerie_version: 0.5.1
 # The image Menagerie runs a workspace's jobs in.
 menagerie_runner_version: 0.4.0
 menagerie_ids_path: homelab/menagerie
