@@ -13,7 +13,6 @@ wyrwood_access_groups:
     gid: 1000
 
 menagerie_name: menagerie.tinomen-dev.internal
-menagerie_workspace_repository: https://github.com/TheLangleys/workspaces.git
 menagerie_github_transit_key: gh-app-thelangleys-automation
 menagerie_ids_path: homelab/hosts/tinomen-dev.internal/menagerie
 menagerie_tls_internal: true
