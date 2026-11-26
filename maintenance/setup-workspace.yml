@@ -1,0 +1,63 @@
+---
+- name: Set up homelab maintenance on the workspace
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - defaults.yml
+  vars:
+    maintenance_state_dir: "{{ maintenance_settings.state_dir }}"
+    maintenance_targets: "{{ maintenance_settings.apt_hosts | default(maintenance_apt_hosts) }}"
+    maintenance_release_dir: "{{ maintenance_state_dir }}/revisions/{{ maintenance_release.stdout.split()[-1] }}"
+  tasks:
+    - name: Read persistent workspace settings
+      ansible.builtin.include_vars:
+        file: "{{ maintenance_settings_file | mandatory }}"
+        name: maintenance_settings
+
+    - name: Check workspace settings
+      ansible.builtin.assert:
+        that:
+          - maintenance_settings.state_dir is defined and maintenance_settings.state_dir is match('^/.+')
+          - maintenance_settings.ssh_auth_sock is defined and maintenance_settings.ssh_auth_sock is match('^/.+')
+          - maintenance_targets is string and maintenance_targets | trim | length > 0
+        fail_msg: Set absolute state_dir and ssh_auth_sock paths and a nonempty APT host pattern.
+
+    - name: Install the reviewed repository revision
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ playbook_dir }}/install-revision.py"
+          - "{{ maintenance_state_dir }}"
+      register: maintenance_release
+      changed_when: maintenance_release.stdout.startswith("Installed ")
+
+    - name: Check the collection scope against the exported inventory
+      ansible.builtin.command:
+        argv:
+          - ansible
+          - --list-hosts
+          - --
+          - "{{ maintenance_targets }}"
+        chdir: "{{ maintenance_release_dir }}"
+      register: maintenance_inventory
+      changed_when: false
+      failed_when: >-
+        maintenance_inventory.rc != 0
+        or maintenance_inventory.stdout is not search('hosts [(][1-9][0-9]*[)]:')
+
+    - name: Import the dependency graph
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ maintenance_release_dir }}/maintenance/graph/import-graph.py"
+          - "{{ maintenance_state_dir }}/graph.sqlite3"
+      register: maintenance_graph_import
+      changed_when: maintenance_graph_import.stdout == "Updated"
+
+    - name: Render the APT collection DAG
+      ansible.builtin.template:
+        src: "{{ maintenance_release_dir }}/maintenance/apt/collect.dag.yml.j2"
+        dest: "{{ maintenance_state_dir }}/homelab-apt-collect.yaml"
+        mode: "0600"
+        validate: dagu validate %s

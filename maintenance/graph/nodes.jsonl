@@ -1,0 +1,11 @@
+{"id":"caddy","name":"Caddy ingress","kind":"service"}
+{"id":"clickhouse","name":"ClickHouse","kind":"service"}
+{"id":"docker-docker-infra","name":"Docker on docker-infra","kind":"runtime"}
+{"id":"docker-infra","name":"docker-infra","kind":"host"}
+{"id":"docker-m1-1295","name":"Docker on m1-1295","kind":"runtime"}
+{"id":"docker-wtr-pro","name":"Docker on wtr-pro","kind":"runtime"}
+{"id":"grafana","name":"Grafana","kind":"service"}
+{"id":"homelab-overlay","name":"homelab overlay","kind":"network"}
+{"id":"m1-1295","name":"m1-1295","kind":"host"}
+{"id":"pocket-id","name":"Pocket ID","kind":"service"}
+{"id":"wtr-pro","name":"wtr-pro","kind":"host"}
