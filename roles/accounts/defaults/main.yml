@@ -6,12 +6,14 @@
 #            and the boblangley-dev workspace's dedicated OpenBao Transit key
 #   ansible  Ansible from the Actions runner: OpenBao Transit key `homelab-ansible` in the wyrwood namespace,
 #            which signs through the runner's Wyrwood SSH agent and never leaves OpenBao
+accounts_agent:
+  name: agent
+  uid: 1500
+  keys:
+    - agent.pub
+    - homelab-agent.pub
 accounts_automation:
-  - name: agent
-    uid: 1500
-    keys:
-      - agent.pub
-      - homelab-agent.pub
+  - "{{ accounts_agent }}"
   - name: ansible
     uid: 1501
     keys:

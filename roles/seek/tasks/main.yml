@@ -1,0 +1,92 @@
+---
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ seek_dir }}"
+    - "{{ seek_dir }}/config"
+  register: seek_dirs
+
+- name: Write the Compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ seek_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+# Validation reads only the file: it runs no helper, reads no secret and contacts no server.
+- name: Write the server configuration
+  ansible.builtin.template:
+    src: server.yml.j2
+    dest: "{{ seek_dir }}/config/server.yml"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: >-
+      docker run --rm --network none --user 0:0 -v %s:/etc/seek/server.yml:ro
+      --entrypoint /usr/local/bin/seek ghcr.io/wyrd-company/seek-server:{{ seek_version }}
+      config validate --server
+
+- name: Check for the Wyrwood binding's directory
+  ansible.builtin.stat:
+    path: "{{ seek_wyrwood_dir }}/vault.sock"
+  register: seek_binding
+
+- name: Report the missing Wyrwood binding
+  ansible.builtin.debug:
+    msg: >-
+      Bind compose seek/seek (directory seek) on agent {{ inventory_hostname_short }} in the Wyrwood UI,
+      with policy seek and access group {{ seek_socket_gid }}, then apply again.
+  when: not seek_binding.stat.exists
+
+# Seek reads its configuration only at start. The Compose file carries a checksum of server.yml in a label, so a changed
+# file recreates the container, also when an earlier apply wrote the file but the binding was missing. The old
+# `secrets` service is removed as an orphan.
+- name: Start the Seek project
+  community.docker.docker_compose_v2:
+    project_src: "{{ seek_dir }}"
+    project_name: seek
+    state: present
+    remove_orphans: true
+  when:
+    - seek_binding.stat.exists
+    - not (ansible_check_mode and seek_dirs is changed)
+
+# Seek exits when it cannot read a secret and Compose keeps restarting it, so a successful start does not show it is
+# serving. The image has no shell or healthcheck: read its log, which holds only the current container's output.
+- name: Wait for Seek to listen
+  ansible.builtin.command:
+    cmd: docker compose --project-directory {{ seek_dir }} -p seek logs --no-color --no-log-prefix seek
+  register: seek_log
+  until: "'seek serve: listening on' in seek_log.stdout"
+  retries: 12
+  delay: 5
+  changed_when: false
+  when:
+    - seek_binding.stat.exists
+    - not ansible_check_mode
+
+# What Seek 0.3.2's secrets service left behind, once Seek is serving and nothing mounts it. Not before: until then
+# the old service may still be the one running, and restarts from these.
+- name: Remove the retired secrets loader and its volume
+  when:
+    - seek_binding.stat.exists
+    - not ansible_check_mode
+  block:
+    - name: Remove the loader's directory
+      ansible.builtin.file:
+        path: "{{ seek_dir }}/scripts"
+        state: absent
+
+    # By command: the volume module needs the Docker SDK for Python on the host, and Compose does not.
+    - name: Remove the loader's config volume
+      ansible.builtin.command:
+        cmd: docker volume rm seek_config
+      register: seek_volume
+      changed_when: seek_volume.rc == 0
+      failed_when: seek_volume.rc != 0 and 'no such volume' not in seek_volume.stderr | lower

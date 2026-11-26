@@ -1,0 +1,35 @@
+# Managed by Ansible (homelab repo, role seek).
+services:
+  seek:
+    image: ghcr.io/wyrd-company/seek-server:{{ seek_version }}
+    container_name: {{ seek_container }}
+    restart: unless-stopped
+    # The image's user, numeric: Wyrwood checks socket access from inspect output.
+    user: "65532:65532"
+    # The Wyrwood binding's access group, for its sockets.
+    group_add:
+      - "{{ seek_socket_gid }}"
+    labels:
+      # Changes with server.yml, which Seek reads only at start, so Compose recreates the container.
+      foo.wyrd.seek-config: "{{ lookup('ansible.builtin.template', 'server.yml.j2') | hash('sha256') }}"
+      caddy: {{ seek_name }}
+      caddy.import: openbao_tls
+      caddy.reverse_proxy: "{{ '{{' }}upstreams 8787{{ '}}' }}"
+    volumes:
+      # A directory, not the file: Ansible replaces the file, and a file mount would keep the old one.
+      - ./config:/etc/seek:ro
+      - type: bind
+        source: {{ seek_wyrwood_dir }}
+        target: /run/wyrwood
+        bind: { create_host_path: false }
+    # What the Wyrwood binding's contract checks for. Seek takes VAULT_ADDR as vault.address, the value server.yml has;
+    # SSH_AUTH_SOCK is unused.
+    environment:
+      SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
+      VAULT_ADDR: unix:///run/wyrwood/vault.sock
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

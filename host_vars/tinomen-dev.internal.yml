@@ -2,6 +2,8 @@
 workstation_owner: tinomen
 workstation_homelab_interface: enp4s0
 workstation_runner_address: 192.168.0.10
+# Host of the boblangley-dev workspace, which signs in as agent.
+workstation_agent_address: 192.168.0.75
 
 # Reviewed AUR package revision for the Wyrwood version in group_vars/all.yml.
 wyrwood_arch_aur_revision: ec73138d8bc23db3c919e1ae1bb62d2159454163

@@ -15,15 +15,20 @@
     mode: "0440"
     validate: visudo -cf %s
 
-- name: Allow the runner's SSH connection from docker-infra
+- name: Allow HomeLab automation SSH connections
   community.general.ufw:
     rule: allow
     direction: in
     interface: "{{ workstation_homelab_interface }}"
     proto: tcp
-    from_ip: "{{ workstation_runner_address }}"
+    from_ip: "{{ item.address }}"
     to_port: "22"
-    comment: HomeLab Actions runner
+    comment: "{{ item.comment }}"
+  loop:
+    - address: "{{ workstation_runner_address }}"
+      comment: HomeLab Actions runner
+    - address: "{{ workstation_agent_address }}"
+      comment: HomeLab operator workspace
 
 - name: Keep the workstation Menagerie socket directory private
   ansible.builtin.file:
