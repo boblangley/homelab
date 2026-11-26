@@ -31,7 +31,7 @@ log_format = "json"
 log_filter = "info"
 
 # Each exchange to NATS stream XOLOTL (role nats, wtr-pro), which ClickHouse loads into database xolotl. The login is
-# the vault secret `nats` (kv/xolotl/nats: user, password). Xolotl stops at startup when the stream is missing.
+# the vault secret `nats` (kv/xolotl/nats: user, password). A missing stream is logged as an error, not fatal.
 [export.nats]
 url = "tls://nats.internal:4222"
 stream = "XOLOTL"
