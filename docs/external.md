@@ -112,6 +112,13 @@ it asks for no Xolotl key policy and declares no policies, and takes its key's a
 `MENAGERIE_XOLOTL_KEY`, which Menagerie sets from `provisioning.xolotl.key-policy`. Earlier versions ask for the key
 policy (answer `devcontainer`).
 
+Backup repositories are also registered in Menagerie's interface (**Backups**) and kept in its data volume, from 0.5.1.
+The first start of 0.5.1 registers the config's `workspace-repository` once and keeps every existing workspace
+backing up to it. After that start the key is no longer read, and each start logs a warning until it is removed from
+`config.yml.j2`. On a fresh volume without the key, register the host's backup repository on **Backups** before
+creating the first workspace. A workspace's backups move to another registered repository with **Move backups** on
+its row.
+
 Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
 ```hcl
