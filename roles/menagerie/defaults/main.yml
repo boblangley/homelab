@@ -17,16 +17,13 @@ menagerie_name: menagerie.internal
 menagerie_operator_key: menagerie-operator-3
 menagerie_xolotl_provisioner_name: menagerie
 
-# The GitHub Apps Menagerie signs in as, wyrd-automation[bot] by default. A host sets its own list in host_vars.
+# The GitHub Apps Menagerie signs in as. Each host sets its own list in host_vars; an empty list fails the run.
 # A backup repository or template names an App by its `name`, so renaming one fails what names it until its
-# credential is changed.
+# credential is changed. One that names none uses the first App in the list whose server holds its URL, so the
+# first App matters until every record names its own.
 #   name:        letters, digits, `_`, `.` and `-`; unique on the host. Required.
 #   id_key:      the key in the OpenBao secret at menagerie_ids_path that holds the App's id. Required.
 #   transit_key: the Transit key (mount `transit`) that holds the App's private key. The workspace's Wyrwood policy
 #                must grant `update` on transit/sign/<transit_key>/sha2-256. Required.
 #   server:      the GitHub server's https origin, for GitHub Enterprise Server. Optional.
-# `github-app` was the name of the one App before 0.5.2 and stays the default one's name.
-menagerie_github_apps:
-  - name: github-app
-    id_key: github_app_id
-    transit_key: gh-app-wyrd-automation
+menagerie_github_apps: []
