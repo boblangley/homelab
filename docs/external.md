@@ -46,7 +46,7 @@ Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interfac
 | `homelab/grafana` | `admin_password`, `secret_key`, `oidc_client_id`, `oidc_client_secret` | `grafana` |
 | `homelab/hosts/<host>/arcane` | `agent_token` | `docker_agent` |
 | `homelab/identity` | `encryption_key` | `identity` |
-| `homelab/menagerie` | `oidc_client_id`, `github_app_id` | `menagerie` |
+| `homelab/menagerie` | `oidc_client_id`, and `<app>_app_id` for each GitHub App in `menagerie_github_apps`, such as `wyrd_automation_app_id` | `menagerie` |
 | `homelab/nats/nsc` | `tgz`: the nsc stores and keys (operator, accounts, users) | `nats-user.fish` |
 | `homelab/nats/server` | `resolver`: operator and account JWTs | `nats` |
 | `homelab/nats/<user>` | `creds` | `nats` (`admin`), `clickhouse` (`clickhouse`), Trowel (`trowel`) and Deck (`deck`), through Wyrwood |
@@ -123,6 +123,14 @@ Wyrwood's agent offers. This host needs no config change: `github-app` stays one
 repositories and templates registered earlier keep the credential their URL chooses until **Change credential** on
 their row. `github-apps` is needed only for more than one App. Anything that calls `POST /api/backup-repositories` or
 `POST /api/templates` must send a `credential` for an SSH address or for an `https` address on a GitHub App's server.
+Each host names the Apps it signs in as in `menagerie_github_apps` in its `host_vars`, one entry each with its `name`
+(the App's login without `[bot]`), the OpenBao key holding its id (`id_key`, `<app>_app_id` with underscores) and its
+Transit key (`gh-app-<name>`). gtr6 has `wyrd-automation`; tinomen-dev has `wyrd-automation`, first, and
+`mmenm-automation` and `thelangleys-automation`. To add an App to a host: import its private key into Transit, add its id to the
+`homelab/menagerie` secret, grant `update` on `transit/sign/<transit key>/sha2-256` in the Wyrwood policy of the
+host's Menagerie, add the entry, and name it as the credential of the backup repository or template on **Change
+credential**. A backup repository or template that names no App uses the first App in the list whose server holds
+its URL. Renaming an App fails whatever names it until its credential is changed.
 0.5.2 moves the data volume from schema 6 to 8 and 0.5.1 refuses it, so back up `/var/lib/menagerie` before an
 upgrade from 0.5.1.
 

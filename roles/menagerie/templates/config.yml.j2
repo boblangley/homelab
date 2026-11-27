@@ -10,10 +10,16 @@ oidc:
   client-id: {{ menagerie_ids.oidc_client_id }}
   redirect-url: https://{{ menagerie_name }}/auth/callback
 
-# wyrd-automation[bot], signed through Wyrwood's vault.sock
-github-app:
-  app-id: {{ menagerie_ids.github_app_id }}
-  transit-key: gh-app-wyrd-automation
+# GitHub Apps, signed through Wyrwood's vault.sock. See menagerie_github_apps.
+github-apps:
+{% for app in menagerie_github_apps %}
+  - name: {{ app.name }}
+    app-id: {{ menagerie_ids[app.id_key] }}
+    transit-key: {{ app.transit_key }}
+{% if app.server is defined %}
+    server: {{ app.server }}
+{% endif %}
+{% endfor %}
 
 job-limits:
   default: 2h

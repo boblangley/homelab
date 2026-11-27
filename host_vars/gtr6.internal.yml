@@ -6,3 +6,8 @@
 # uid 1000 is `workspaces`, the account the devcontainers and Menagerie's workspace sessions run as. It is not in
 # accounts_services: that would give it home /nonexistent and shell nologin, and it needs /home/workspaces and bash.
 # The Wyrwood agent is in its group (gid 1000), added by hand, for the workspace sockets.
+
+menagerie_github_apps:
+  - name: wyrd-automation
+    id_key: wyrd_automation_app_id
+    transit_key: gh-app-wyrd-automation

@@ -6,6 +6,16 @@
   become: false
   no_log: true
 
+- name: Check the GitHub Apps
+  ansible.builtin.assert:
+    that:
+      - menagerie_github_apps | length > 0
+      - menagerie_github_apps | map(attribute='name') | map('lower') | unique | length == menagerie_github_apps | length
+      - menagerie_github_apps | map(attribute='id_key') | select('in', menagerie_ids) | list | length == menagerie_github_apps | length
+    fail_msg: >-
+      menagerie_github_apps needs at least one App, each with a different name and an id_key that
+      {{ menagerie_ids_path }} in OpenBao holds.
+
 - name: Create the project directories
   ansible.builtin.file:
     path: "{{ item }}"
