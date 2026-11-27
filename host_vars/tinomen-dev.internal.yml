@@ -28,7 +28,12 @@ wyrwood_access_groups:
 menagerie_name: menagerie.tinomen-dev.internal
 menagerie_operator_key: menagerie-tinomen-dev
 menagerie_xolotl_provisioner_name: menagerie-tinomen-dev
+# wyrd-automation stays first: the backup repository and template registered with no credential use the first App
+# whose server holds their URL, and they are on wyrd-company.
 menagerie_github_apps:
+  - name: wyrd-automation
+    id_key: wyrd_automation_app_id
+    transit_key: gh-app-wyrd-automation
   - name: mmenm-automation
     id_key: mmenm_automation_app_id
     transit_key: gh-app-mmenm-automation

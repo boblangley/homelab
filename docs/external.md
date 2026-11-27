@@ -125,8 +125,8 @@ their row. `github-apps` is needed only for more than one App. Anything that cal
 `POST /api/templates` must send a `credential` for an SSH address or for an `https` address on a GitHub App's server.
 Each host names the Apps it signs in as in `menagerie_github_apps` in its `host_vars`, one entry each with its `name`
 (the App's login without `[bot]`), the OpenBao key holding its id (`id_key`, `<app>_app_id` with underscores) and its
-Transit key (`gh-app-<name>`). gtr6 has `wyrd-automation`; tinomen-dev has `mmenm-automation` and
-`thelangleys-automation`. To add an App to a host: import its private key into Transit, add its id to the
+Transit key (`gh-app-<name>`). gtr6 has `wyrd-automation`; tinomen-dev has `wyrd-automation`, first, and
+`mmenm-automation` and `thelangleys-automation`. To add an App to a host: import its private key into Transit, add its id to the
 `homelab/menagerie` secret, grant `update` on `transit/sign/<transit key>/sha2-256` in the Wyrwood policy of the
 host's Menagerie, add the entry, and name it as the credential of the backup repository or template on **Change
 credential**. A backup repository or template that names no App uses the first App in the list whose server holds
