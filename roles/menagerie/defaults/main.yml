@@ -11,6 +11,7 @@ menagerie_version: 0.5.2
 # The image Menagerie runs a workspace's jobs in.
 menagerie_runner_version: 0.4.0
 menagerie_ids_path: homelab/menagerie
+menagerie_github_transit_key: gh-app-wyrd-automation
 
 menagerie_name: menagerie.internal
 menagerie_tls_internal: false

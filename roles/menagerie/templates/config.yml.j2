@@ -1,7 +1,6 @@
 # Managed by Ansible (homelab repo, role menagerie).
 workspace-root: /workspaces
-# Each workspace is force-pushed to its own orphan branch
-workspace-repository: https://github.com/wyrd-company/workspaces.git
+# Backup repositories are registered on Menagerie's Backups screen, not here (docs/external.md).
 wyrwood-directory: /run/wyrwood
 runner-image: ghcr.io/wyrd-company/menagerie:{{ menagerie_runner_version }}
 # Definitions get no variables from Menagerie's environment
@@ -12,10 +11,10 @@ oidc:
   client-id: {{ menagerie_ids.oidc_client_id }}
   redirect-url: https://{{ menagerie_name }}/auth/callback
 
-# wyrd-automation[bot], signed through Wyrwood's vault.sock
+# The host's GitHub App (gtr6: wyrd-automation[bot]), signed through Wyrwood's vault.sock
 github-app:
   app-id: {{ menagerie_ids.github_app_id }}
-  transit-key: gh-app-wyrd-automation
+  transit-key: {{ menagerie_github_transit_key }}
 
 job-limits:
   default: 2h
