@@ -13,6 +13,5 @@ wyrwood_access_groups:
     gid: 1000
 
 menagerie_name: menagerie.tinomen-dev.internal
-menagerie_tls_internal: true
 menagerie_operator_key: menagerie-tinomen-dev
 menagerie_xolotl_provisioner_name: menagerie-tinomen-dev

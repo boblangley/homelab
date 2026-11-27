@@ -13,6 +13,5 @@ menagerie_runner_version: 0.4.0
 menagerie_ids_path: homelab/menagerie
 
 menagerie_name: menagerie.internal
-menagerie_tls_internal: false
 menagerie_operator_key: menagerie-operator-3
 menagerie_xolotl_provisioner_name: menagerie
