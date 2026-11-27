@@ -113,10 +113,9 @@ it asks for no Xolotl key policy and declares no policies, and takes its key's a
 policy (answer `devcontainer`).
 
 Backup repositories are also registered in Menagerie's interface (**Backups**) and kept in its data volume, from 0.5.1.
-The first start of 0.5.1 registers the config's `workspace-repository` once and keeps every existing workspace
-backing up to it. After that start the key is no longer read, and each start logs a warning until it is removed from
-`config.yml.j2`. On a fresh volume without the key, register the host's backup repository on **Backups** before
-creating the first workspace. A workspace's backups move to another registered repository with **Move backups** on
+The first start of 0.5.1 registered the config's `workspace-repository`, `https://github.com/wyrd-company/workspaces.git`,
+once and kept every existing workspace backing up to it; the key is gone from `config.yml.j2`. On a fresh volume,
+register that repository on **Backups** before creating the first workspace. A workspace's backups move to another registered repository with **Move backups** on
 its row.
 
 From 0.5.2 each backup repository and each template names its own credential, a GitHub App or an SSH key that
