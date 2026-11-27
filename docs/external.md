@@ -119,6 +119,14 @@ backing up to it. After that start the key is no longer read, and each start log
 creating the first workspace. A workspace's backups move to another registered repository with **Move backups** on
 its row.
 
+From 0.5.2 each backup repository and each template names its own credential, a GitHub App or an SSH key that
+Wyrwood's agent offers. This host needs no config change: `github-app` stays one App named `github-app`, and
+repositories and templates registered earlier keep the credential their URL chooses until **Change credential** on
+their row. `github-apps` is needed only for more than one App. Anything that calls `POST /api/backup-repositories` or
+`POST /api/templates` must send a `credential` for an SSH address or for an `https` address on a GitHub App's server.
+0.5.2 moves the data volume from schema 6 to 8 and 0.5.1 refuses it, so back up `/var/lib/menagerie` before an
+upgrade from 0.5.1.
+
 Policy `deck-client` signs as the workspace's Deck key, value `deck_key`. Its HCL:
 
 ```hcl
