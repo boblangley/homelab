@@ -30,6 +30,49 @@
     - address: "{{ workstation_agent_address }}"
       comment: HomeLab operator workspace
 
+# A Swarm node needs 7946 (discovery) and 4789/udp (VXLAN overlay) from each other node.
+- name: Allow Swarm discovery from the other nodes
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_homelab_interface }}"
+    proto: "{{ item.1 }}"
+    from_ip: "{{ item.0.address }}"
+    to_ip: "{{ workstation_address }}"
+    to_port: "7946"
+    comment: HomeLab Swarm discovery
+  loop: "{{ workstation_swarm_peers | product(['tcp', 'udp']) | list }}"
+  loop_control:
+    label: "{{ item.0.address }}/{{ item.1 }}"
+
+- name: Allow the Swarm overlay from the other nodes
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_homelab_interface }}"
+    proto: udp
+    from_ip: "{{ item.address }}"
+    to_ip: "{{ workstation_address }}"
+    to_port: "4789"
+    comment: HomeLab Swarm overlay
+  loop: "{{ workstation_swarm_peers }}"
+  loop_control:
+    label: "{{ item.address }}"
+
+# The encrypted overlay's traffic is IPsec ESP (IP protocol 50), which has no ports.
+- name: Allow the encrypted Swarm overlay from the nodes that need it
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_homelab_interface }}"
+    proto: esp
+    from_ip: "{{ item.address }}"
+    to_ip: "{{ workstation_address }}"
+    comment: Homelab Swarm encrypted overlay
+  loop: "{{ workstation_swarm_peers | selectattr('esp', 'defined') | selectattr('esp') | list }}"
+  loop_control:
+    label: "{{ item.address }}"
+
 - name: Keep the workstation Menagerie socket directory private
   ansible.builtin.file:
     path: /var/lib/menagerie-sockets
