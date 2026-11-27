@@ -4,6 +4,19 @@ workstation_homelab_interface: enp4s0
 workstation_runner_address: 192.168.0.10
 # Host of the boblangley-dev workspace, which signs in as agent.
 workstation_agent_address: 192.168.0.75
+# This workstation's address on workstation_homelab_interface, the destination of its Swarm firewall rules.
+workstation_address: 192.168.0.214
+# The other Swarm nodes: docker-infra (manager) and the Docker workers. Each may reach this node's Swarm ports.
+# `esp` also allows IPsec ESP, which the encrypted overlay carries; only the nodes that need it get it. The ingress
+# manager on docker-infra pings this node's socket proxy over the overlay, and it restarts without ESP.
+workstation_swarm_peers:
+  - { address: 192.168.0.10, esp: true }  # docker-infra
+  - { address: 192.168.0.75 }  # gtr6
+  - { address: 192.168.0.65 }  # m1-1295
+  - { address: 192.168.0.40 }  # rp4
+  - { address: 192.168.0.50 }  # ser6-max
+  - { address: 192.168.0.60 }  # ser6-p
+  - { address: 192.168.0.45 }  # wtr-pro
 
 # Reviewed AUR package revision for the Wyrwood version in group_vars/all.yml.
 wyrwood_arch_aur_revision: ec73138d8bc23db3c919e1ae1bb62d2159454163
