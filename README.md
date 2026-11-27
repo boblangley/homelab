@@ -80,7 +80,8 @@ The workstation uses the `homelab` overlay as an active Swarm worker with the `w
 Docker requires active availability for standalone containers to attach to an overlay. Complete the local
 Swarm join, Wyrwood enrollment and Menagerie binding before the first Apply. The workstation play updates
 Wyrwood through its pinned AUR package and deploys Menagerie, the Arcane agent, and the read-only Docker socket
-proxy. The workstation's Caddy serves its Menagerie instance.
+proxy. The workstation runs no Caddy: the edge ingress manager on docker-infra reads its Docker labels through
+the socket proxy (`edge_socket_proxies`) and serves its Menagerie instance.
 
 The play also installs the standard `agent` account with the operator and `homelab-agent` SSH keys and passwordless
 sudo. Its firewall allows SSH from gtr6, which hosts the `boblangley-dev` workspace.
