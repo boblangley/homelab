@@ -5,7 +5,8 @@
 # Wyrwood binds its sockets to compose project and service menagerie/menagerie, so neither name may change. Its state
 # is in volume menagerie_menagerie-data.
 #
-# Installation identifiers, read from OpenBao at homelab/menagerie: oidc_client_id, github_app_id.
+# Installation identifiers, read from OpenBao at homelab/menagerie: oidc_client_id, and the id of each GitHub App
+# in menagerie_github_apps, under the key its `id_key` names.
 menagerie_dir: /opt/docker/menagerie
 menagerie_version: 0.5.2
 # The image Menagerie runs a workspace's jobs in.
@@ -15,3 +16,17 @@ menagerie_ids_path: homelab/menagerie
 menagerie_name: menagerie.internal
 menagerie_operator_key: menagerie-operator-3
 menagerie_xolotl_provisioner_name: menagerie
+
+# The GitHub Apps Menagerie signs in as, wyrd-automation[bot] by default. A host sets its own list in host_vars.
+# A backup repository or template names an App by its `name`, so renaming one fails what names it until its
+# credential is changed.
+#   name:        letters, digits, `_`, `.` and `-`; unique on the host. Required.
+#   id_key:      the key in the OpenBao secret at menagerie_ids_path that holds the App's id. Required.
+#   transit_key: the Transit key (mount `transit`) that holds the App's private key. The workspace's Wyrwood policy
+#                must grant `update` on transit/sign/<transit_key>/sha2-256. Required.
+#   server:      the GitHub server's https origin, for GitHub Enterprise Server. Optional.
+# `github-app` was the name of the one App before 0.5.2 and stays the default one's name.
+menagerie_github_apps:
+  - name: github-app
+    id_key: github_app_id
+    transit_key: gh-app-wyrd-automation
