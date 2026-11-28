@@ -12,6 +12,8 @@ services:
       SSH_AUTH_SOCK: /run/wyrwood/ssh-agent.sock
       VAULT_ADDR: unix:///run/wyrwood/vault.sock
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      # The host's name, not the container's.
+      HOSTNAME: {{ ansible_facts.hostname }}
     labels:
       caddy: {{ menagerie_name }}
       caddy.reverse_proxy: "{{ '{{' }}upstreams 8080{{ '}}' }}"
