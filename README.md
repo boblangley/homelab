@@ -84,7 +84,8 @@ proxy. The workstation runs no Caddy: the edge ingress manager on docker-infra r
 the socket proxy (`edge_socket_proxies`) and serves its Menagerie instance.
 
 The play also installs the standard `agent` account with the operator and `homelab-agent` SSH keys and passwordless
-sudo. Its firewall allows SSH from gtr6, which hosts the `homelab` workspace.
+sudo. The `homelab` workspace runs on this workstation, so its firewall allows SSH on `docker_gwbridge`, the
+interface the workspace reaches the host through.
 
 Create an Arcane environment for `tinomen-dev.internal` and store its token with
 `fish scripts/openbao/arcane-agent-token.fish tinomen-dev.internal` before applying the Docker agent role.

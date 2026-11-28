@@ -2,8 +2,11 @@
 workstation_owner: tinomen
 workstation_homelab_interface: enp4s0
 workstation_runner_address: 192.168.0.10
-# Host of the homelab workspace, which signs in as agent.
-workstation_agent_address: 192.168.0.75
+# The homelab workspace runs here and signs in as agent. It reaches this host's SSH through docker_gwbridge.
+workstation_agent_interface: docker_gwbridge
+# gtr6 hosted the boblangley-dev workspace, which held homelab-agent until it was decommissioned.
+workstation_agent_retired_addresses:
+  - 192.168.0.75
 # This workstation's address on workstation_homelab_interface, the destination of its Swarm firewall rules.
 workstation_address: 192.168.0.214
 # The other Swarm nodes: docker-infra (manager) and the Docker workers. Each may reach this node's Swarm ports.
