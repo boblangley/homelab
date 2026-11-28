@@ -27,8 +27,30 @@
   loop:
     - address: "{{ workstation_runner_address }}"
       comment: HomeLab Actions runner
-    - address: "{{ workstation_agent_address }}"
-      comment: HomeLab operator workspace
+
+# The operator workspace runs on this host, on the homelab overlay. It reaches the host's own SSH through
+# docker_gwbridge, from an address Docker assigns, so the rule names the interface rather than a source.
+- name: Allow SSH from the operator workspace on this host
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_agent_interface }}"
+    proto: tcp
+    to_port: "22"
+    comment: HomeLab operator workspace
+  when: workstation_agent_interface is defined
+
+# ufw keeps a rule until it is deleted. These are operator workspace hosts that no longer hold one.
+- name: Remove SSH rules for retired operator workspace hosts
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ workstation_homelab_interface }}"
+    proto: tcp
+    from_ip: "{{ item }}"
+    to_port: "22"
+    delete: true
+  loop: "{{ workstation_agent_retired_addresses | default([]) }}"
 
 # A Swarm node needs 7946 (discovery) and 4789/udp (VXLAN overlay) from each other node.
 - name: Allow Swarm discovery from the other nodes

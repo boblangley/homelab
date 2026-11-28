@@ -3,7 +3,7 @@
 
 # Automation accounts on every host. Each authorizes an explicit list of keys from files/.
 #   agent    Ansible from a workstation, and AI agents acting by hand: the operator's key
-#            and the boblangley-dev workspace's dedicated OpenBao Transit key
+#            and the homelab workspace's dedicated OpenBao Transit key
 #   ansible  Ansible from the Actions runner: OpenBao Transit key `homelab-ansible` in the wyrwood namespace,
 #            which signs through the runner's Wyrwood SSH agent and never leaves OpenBao
 accounts_agent:

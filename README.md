@@ -41,7 +41,7 @@ Manual runs default to `preview`, which shows a check-mode run with diffs. Clear
 From a workstation, the playbook connects as `agent`, which has passwordless sudo on each host, and reads OpenBao with
 the operator's own token. `bao login -method=oidc` (Pocket ID) writes it to `~/.vault-token`.
 
-The `boblangley-dev` workspace also connects as `agent`, using the dedicated `homelab-agent` OpenBao Transit key
+The `homelab` workspace also connects as `agent`, using the dedicated `homelab-agent` OpenBao Transit key
 through its Wyrwood binding. The `agent` account authorizes both the operator's key and this workspace key; the
 private Transit key stays in OpenBao. The `homelab-agent` Wyrwood policy must remain exclusive to that workspace.
 
@@ -84,7 +84,8 @@ proxy. The workstation runs no Caddy: the edge ingress manager on docker-infra r
 the socket proxy (`edge_socket_proxies`) and serves its Menagerie instance.
 
 The play also installs the standard `agent` account with the operator and `homelab-agent` SSH keys and passwordless
-sudo. Its firewall allows SSH from gtr6, which hosts the `boblangley-dev` workspace.
+sudo. The `homelab` workspace runs on this workstation, so its firewall allows SSH on `docker_gwbridge`, the
+interface the workspace reaches the host through.
 
 Create an Arcane environment for `tinomen-dev.internal` and store its token with
 `fish scripts/openbao/arcane-agent-token.fish tinomen-dev.internal` before applying the Docker agent role.

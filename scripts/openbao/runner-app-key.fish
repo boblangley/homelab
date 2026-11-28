@@ -9,7 +9,7 @@ if test -z "$pem"
     echo "usage: fish scripts/openbao/runner-app-key.fish <downloaded .pem>"
     exit 2
 end
-set app_login 'langley-homlab-runner[bot]'
+set app_login 'langley-homelab-runner[bot]'
 set key gh-app-homelab-runner
 
 if not test -f $pem
