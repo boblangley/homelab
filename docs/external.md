@@ -28,7 +28,7 @@ homelab's data live.
 | root | `homelab-ansible` | Read `wyrwood/kv/data/homelab/*`; issue from `wyrwood/pki_services/issue/homelab-services`. Given to the operator's OIDC identity, for workstation runs |
 | root | `ssh-user` | Sign SSH user certificates. Given with the OIDC login |
 | `wyrwood` | `homelab-runner` | The Actions runner's binding; includes issuing from `pki_services/issue/homelab-services` |
-| `wyrwood` | Wyrwood policy `homelab-agent` | Read `transit/keys/homelab-agent` and update `transit/sign/homelab-agent`; offers the `homelab-agent` SSH identity. Selected only by `devcontainer-boblangley-dev` on gtr6 |
+| `wyrwood` | Wyrwood policy `homelab-agent` | Read `transit/keys/homelab-agent` and update `transit/sign/homelab-agent`; offers the `homelab-agent` SSH identity. Selected only by `devcontainer-homelab` on gtr6 |
 
 Policies in `wyrwood` that Wyrwood bindings use are edited in Wyrwood's interface, not with `bao policy write`.
 
@@ -72,7 +72,7 @@ Controller `wyrwood.internal` (docker-infra); an agent on every Docker host. Bin
 | docker-infra | name `homelab-runner` | `homelab-runner` | 1502 `homelab-runner` |
 | gtr6 | compose `menagerie/menagerie` | `menagerie` | 1000 `workspaces` |
 | gtr6 | name `devcontainer-<slug>`, one per workspace | `workspace`, `xolotl-client-key` | 1000 `workspaces` |
-| gtr6 | name `devcontainer-boblangley-dev` (additional policy) | `homelab-agent` | 1000 `workspaces` |
+| gtr6 | name `devcontainer-homelab` (additional policy) | `homelab-agent` | 1000 `workspaces` |
 | ser6-max | compose `hermes/hermes` | `hermes-agent` | |
 | wtr-pro | compose `ntfy/secrets`, directory `ntfy-secrets` | `ntfy`: read `kv/data/homelab/ntfy` | |
 | wtr-pro | compose `trowel/trowel`, directory `trowel` | `trowel`: read `kv/data/homelab/nats/trowel` and `kv/data/homelab/trowel/github/*` | 1503 `trowel` |
@@ -312,7 +312,9 @@ rules:
 
 - Organization `wyrd-company`: a webhook to `https://hooks.wyrd.team/github/wyrd-company`, JSON, signed with
   `homelab/trowel/github/wyrd-company`.
-- The runner's GitHub App: its key is Transit `gh-app-homelab-runner`, its ID and login in `homelab/runner`.
+- Organization `TheLangleys` holds this repo, `TheLangleys/homelab`. App wyrd-automation is installed on it.
+- The runner's GitHub App, `langley-homelab-runner`: owned by `TheLangleys` and installed on `TheLangleys/homelab`.
+  Its key is Transit `gh-app-homelab-runner`; its ID and login (`langley-homelab-runner[bot]`) are in `homelab/runner`.
 
 ## Pocket ID
 

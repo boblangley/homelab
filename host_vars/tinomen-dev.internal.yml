@@ -2,7 +2,7 @@
 workstation_owner: tinomen
 workstation_homelab_interface: enp4s0
 workstation_runner_address: 192.168.0.10
-# Host of the boblangley-dev workspace, which signs in as agent.
+# Host of the homelab workspace, which signs in as agent.
 workstation_agent_address: 192.168.0.75
 # This workstation's address on workstation_homelab_interface, the destination of its Swarm firewall rules.
 workstation_address: 192.168.0.214
